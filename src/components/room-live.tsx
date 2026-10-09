@@ -3,18 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { RoomLiveData } from "@/lib/data";
 import { STUDY_TZ, studyDayKey } from "@/lib/study-day";
-import { elapsedSeconds, formatDuration, syncClock, useNow } from "./clock";
+import { elapsedSeconds, formatDuration, onDayReset, syncClock, useNow } from "./clock";
 import { Lamp } from "./lamp";
+import { subscribeLive, watchRoom } from "./live-socket";
 import { Clock } from "./timer-ui";
 import { useTimer } from "./timer-provider";
 
-const POLL_MS = 5000;
 const timeFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: STUDY_TZ, hour: "2-digit", minute: "2-digit" });
 
 export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: string; initial: RoomLiveData }) {
   const [data, setData] = useState(initial);
   const [announcement, setAnnouncement] = useState("");
-  const { state: myTimer, version } = useTimer();
+  const { state: myTimer } = useTimer();
   const now = useNow();
   const previous = useRef(new Map(initial.members.map((m) => [m.userId, m.activeSince !== null])));
 
@@ -40,19 +40,24 @@ export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: stri
 
         setData(next);
       } catch {
-        // ağ hatası veya iptal: bir sonraki turda tekrar denenir
+        // ağ hatası veya iptal: sonraki bildirimde ya da sekmeye dönünce tekrar denenir
       }
     }
-    // version değiştiğinde (kendi timer'ım başladı/durdu) hemen yenile
-    if (version > 0) load();
-    const interval = setInterval(load, POLL_MS);
+    // Odadan biri timer'ını başlatınca/durdurunca ya da biri katılıp ayrılınca sunucu haber verir
+    const unwatch = watchRoom(roomId);
+    const unsubscribe = subscribeLive((event) => {
+      if (event.type === "open" || (event.type === "room" && event.roomId === roomId)) load();
+    });
+    const cancelDayReset = onDayReset(load);
     document.addEventListener("visibilitychange", load);
     return () => {
-      clearInterval(interval);
+      unwatch();
+      unsubscribe();
+      cancelDayReset();
       document.removeEventListener("visibilitychange", load);
       controller?.abort();
     };
-  }, [roomId, meId, version]);
+  }, [roomId, meId]);
 
   // Kendi satırımı sunucu cevabını beklemeden kendi timer state'imden göster
   const members = data.members.map((m) =>

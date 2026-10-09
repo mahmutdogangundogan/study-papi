@@ -19,8 +19,8 @@ Postgres portunu değiştirmek için `POSTGRES_PORT=5432 pnpm db:up` yaz ve `.en
 
 ## Kurallar
 
-- **Timer bugünkü toplamı gösterir.** Ara verince durur, devam edince kaldığı yerden sayar, her gece 03.00'te (TSİ, `src/lib/study-day.ts`) sıfırlanır; gece yarısını geçen çalışma önceki güne sayılır. Açık sekme kendi timer durumunu 30 sn'de bir tazeler; başka cihazdan başlatılan timer da görünür.
-- **Unutulan timer kendiliğinden durur.** Timer 3 saat kesintisiz çalışınca "Hâlâ çalışıyor musun?" diye sorar. 1 saat içinde onaylanırsa o süre de sayılır ve 3 saat sonra yine sorar. Onaylanmazsa timer durur ve sorunun çıktığı andan sonrası sayılmaz. Süreler `src/lib/timer-rules.ts` içinde. Ayrı bir zamanlanmış görev yok; süresi dolanlar, timer durumunu okuyan sorgulardan önce kapatılır.
+- **Timer bugünkü toplamı gösterir.** Ara verince durur, devam edince kaldığı yerden sayar, her gece 03.00'te (TSİ, `src/lib/study-day.ts`) sıfırlanır; gece yarısını geçen çalışma önceki güne sayılır. Başka cihazdan başlatılan timer da anında görünür.
+- **Unutulan timer kendiliğinden durur.** Timer 3 saat kesintisiz çalışınca "Hâlâ çalışıyor musun?" diye sorar. 1 saat içinde onaylanırsa o süre de sayılır ve 3 saat sonra yine sorar. Onaylanmazsa timer durur ve sorunun çıktığı andan sonrası sayılmaz. Süreler `src/lib/timer-rules.ts` içinde. Süresi dolan timer'ı realtime sunucusu tam o anda kapatır; timer durumunu okuyan sorgular da okumadan önce kapatır.
 - **Timer kişiye aittir, odaya değil.** `study_sessions` tablosunda `ended_at` değeri boş olan kayıt, o kişinin çalışan timer'ıdır. Kısmi bir unique index (`study_sessions_one_active_per_user`) aynı anda birden fazla açık timer olmasını engeller. Kişi 3 odadaysa 3 odada da aynı timer görünür.
 - **Odalar public ya da private olabilir.** Public odalar Keşfet sayfasında aranabilir. Private odalara yalnızca davet linkiyle (`/join/KOD`) ya da kodla girilir; oda üyesi olmayan biri private odayı göremez.
 - **Oda kodu unique'tir** (8 karakter, karışabilecek 0/O ve 1/I harfleri hariç). Davet linki de aynı kodu kullanır. Oda sahibi kodu yenileyebilir; bu durumda eski link ve kod geçersiz olur.
@@ -35,9 +35,15 @@ Postgres portunu değiştirmek için `POSTGRES_PORT=5432 pnpm db:up` yaz ve `.en
 | `src/lib/password.ts` | scrypt ile şifre hash'leme (node:crypto, ek paket yok) |
 | `src/lib/data.ts` | Oda ve timer sorguları, "bugün toplam" hesabı (gün TSİ 03.00'te başlar) |
 | `src/actions/*` | Server Action'lar: giriş/kayıt, oda oluşturma/katılma/ayrılma, timer başlat/durdur |
-| `src/app/api/rooms/[id]/live` | Odadakilerin canlı durumu (istemci 5 sn'de bir sorar) |
+| `server.mts` | `pnpm dev` / `pnpm start` bunu çalıştırır: Next.js + aynı portta WebSocket (`/ws`) |
+| `src/realtime/server.mts` | Postgres `LISTEN` ile timer ve üyelik değişikliklerini dinler, ilgili tarayıcılara "şu değişti" der |
+| `drizzle/0002_realtime_notify.sql` | `study_sessions` ve `room_members` değişince `pg_notify` gönderen tetikleyiciler |
+| `src/components/live-socket.ts` | Sekme başına tek WebSocket; koparsa yeniden bağlanır, bağlanınca kaçırılanları çektirir |
+| `src/app/api/rooms/[id]/live` | Odadakilerin canlı durumu (istemci bildirim gelince çeker) |
 | `src/components/timer-provider.tsx` | Kişinin tek timer state'i; header ve oda sayfası bunu paylaşır |
 | `src/proxy.ts` | Çerez yoksa giriş sayfasına yönlendirir (`?next=` ile geri döner) |
+
+Anlık güncelleme: Postgres her timer ve üyelik değişikliğinde `NOTIFY` gönderir, realtime sunucusu bunu WebSocket ile tarayıcıya iletir, tarayıcı da veriyi yukarıdaki API'lerden çeker. Polling yok. Next.js route handler'ları WebSocket kabul etmediği için `next dev` yerine `pnpm dev` kullan; yoksa canlı güncelleme olmaz.
 
 Saniyelik sayma istemcide yapılır. Telefonun saati yanlış olsa bile süreler doğru görünsün diye istemci saati sunucu saatine göre düzeltilir (`syncClock`).
 

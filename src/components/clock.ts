@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { msUntilDayReset } from "@/lib/study-day";
 
 // Telefonun saati sunucudan farklı olabilir; tüm süreler sunucu saatine göre hesaplanır
 let clockOffsetMs = 0;
@@ -39,6 +40,19 @@ export function useNow(): number | null {
     () => now || null,
     () => null,
   );
+}
+
+/** Her gece 03.00 sıfırlamasında (sunucu saatine göre) çağırır; dönen fonksiyon iptal eder */
+export function onDayReset(callback: () => void) {
+  let timeout: ReturnType<typeof setTimeout>;
+  const schedule = () => {
+    timeout = setTimeout(() => {
+      callback();
+      schedule();
+    }, msUntilDayReset(Date.now() + clockOffsetMs) + 1000);
+  };
+  schedule();
+  return () => clearTimeout(timeout);
 }
 
 export function elapsedSeconds(sinceIso: string, nowMs: number) {

@@ -3,8 +3,8 @@
 import { createContext, use, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { confirmTimer, startTimer, stopTimer } from "@/actions/timer";
 import type { TimerState } from "@/lib/data";
-import { GRACE_MINUTES } from "@/lib/timer-rules";
-import { syncClock } from "./clock";
+import { onDayReset, syncClock } from "./clock";
+import { subscribeLive } from "./live-socket";
 
 type TimerContextValue = {
   state: TimerState;
@@ -12,30 +12,19 @@ type TimerContextValue = {
   toggle: () => void;
   /** "Hâlâ çalışıyor musun?" sorusuna evet */
   confirm: () => void;
-  /** Timer her değiştiğinde artar; canlı listeler bununla hemen yenilenir */
-  version: number;
 };
-
-const REFRESH_MS = 30_000;
 
 const TimerContext = createContext<TimerContextValue | null>(null);
 
 export function TimerProvider({ initial, children }: { initial: TimerState; children: ReactNode }) {
   const [state, setState] = useState(initial);
-  const [version, setVersion] = useState(0);
   const [pending, startTransition] = useTransition();
-  const activeRef = useRef(initial.activeSince);
   // Her tıklamada artar; tıklamadan önce başlamış bir tazeleme isteği yeni durumu ezmesin
   const mutationRef = useRef(0);
-  const refreshRef = useRef<() => void>(() => {});
-
-  useEffect(() => {
-    activeRef.current = state.activeSince;
-  }, [state.activeSince]);
 
   useEffect(() => syncClock(initial.serverNow), [initial.serverNow]);
 
-  // Başka cihazdan başlatılan/durdurulan timer'ı ve gece 03.00 sıfırlamasını yakala
+  // Başka cihazdan başlatılan/durdurulan, onaysız kaldığı için duran timer'ı ve gece 03.00 sıfırlamasını yakala
   useEffect(() => {
     async function refresh() {
       if (document.visibilityState === "hidden") return;
@@ -46,29 +35,22 @@ export function TimerProvider({ initial, children }: { initial: TimerState; chil
         const next: TimerState = await res.json();
         if (mutation !== mutationRef.current) return;
         syncClock(next.serverNow);
-        if (next.activeSince !== activeRef.current) setVersion((v) => v + 1);
         setState(next);
       } catch {
-        // bir sonraki turda tekrar denenir
+        // sonraki bildirimde ya da sekmeye dönünce tekrar denenir
       }
     }
-    refreshRef.current = refresh;
-    const interval = setInterval(refresh, REFRESH_MS);
+    const unsubscribe = subscribeLive((event) => {
+      if (event.type === "open" || event.type === "timer") refresh();
+    });
+    const cancelDayReset = onDayReset(refresh);
     document.addEventListener("visibilitychange", refresh);
     return () => {
-      clearInterval(interval);
+      unsubscribe();
+      cancelDayReset();
       document.removeEventListener("visibilitychange", refresh);
     };
   }, []);
-
-  // Onay süresi dolduğu an sunucudan yeni durumu al (timer otomatik durmuş olur)
-  useEffect(() => {
-    if (!state.confirmedUntil) return;
-    const deadline = new Date(state.confirmedUntil).getTime() + GRACE_MINUTES * 60_000;
-    const ms = deadline - new Date(state.serverNow).getTime() + 1000;
-    const timeout = setTimeout(() => refreshRef.current(), Math.max(ms, 1000));
-    return () => clearTimeout(timeout);
-  }, [state.confirmedUntil, state.serverNow]);
 
   function run(action: () => Promise<TimerState>) {
     mutationRef.current++;
@@ -76,14 +58,13 @@ export function TimerProvider({ initial, children }: { initial: TimerState; chil
       const next = await action();
       syncClock(next.serverNow);
       setState(next);
-      setVersion((v) => v + 1);
     });
   }
 
   const toggle = () => run(state.activeSince !== null ? stopTimer : startTimer);
   const confirm = () => run(confirmTimer);
 
-  return <TimerContext value={{ state, pending, toggle, confirm, version }}>{children}</TimerContext>;
+  return <TimerContext value={{ state, pending, toggle, confirm }}>{children}</TimerContext>;
 }
 
 export function useTimer() {
