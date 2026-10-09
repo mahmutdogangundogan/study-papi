@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { and, eq, gt, sql } from "drizzle-orm";
@@ -21,11 +21,18 @@ export async function createSession(userId: string) {
 
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // LAN'da http:// ile açıldığında secure çerez kaydedilmez; sadece https isteklerinde secure yap
+    secure: await isHttpsRequest(),
     sameSite: "lax",
     path: "/",
     expires: expiresAt,
   });
+}
+
+async function isHttpsRequest() {
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto") ?? h.get("origin")?.split(":")[0];
+  return proto === "https";
 }
 
 export async function deleteSession() {
