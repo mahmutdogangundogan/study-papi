@@ -1,24 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Literata, Schibsted_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Literata: başlıklar ve tüm rakamlar (timer). Schibsted Grotesk: arayüz metni.
+const literata = Literata({
+  variable: "--font-literata",
   subsets: ["latin", "latin-ext"],
+  axes: ["opsz"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const schibsted = Schibsted_Grotesk({
+  variable: "--font-schibsted",
+  subsets: ["latin", "latin-ext"],
 });
 
 export const metadata: Metadata = {
   title: { default: "Study Papi", template: "%s · Study Papi" },
-  description: "Arkadaşlarınla aynı odada çalış, kimin çalıştığını canlı gör.",
+  description: "Arkadaşlarınla aynı salonda çalış, kimin çalıştığını canlı gör.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#09090b",
+  themeColor: "#eef1e8",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -26,8 +28,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="tr" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col font-sans">{children}</body>
+    <html lang="tr" className={`${literata.variable} ${schibsted.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col font-sans text-[16px] leading-normal">{children}</body>
     </html>
   );
 }

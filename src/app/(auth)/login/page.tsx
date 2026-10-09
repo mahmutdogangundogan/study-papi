@@ -9,9 +9,9 @@ export const metadata: Metadata = { title: "Giriş yap" };
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight text-white">Tekrar hoş geldin</h1>
-      <p className="mt-1.5 text-sm text-zinc-400">Kullanıcı adın ve şifrenle giriş yap.</p>
-      <div className="mt-8">
+      <h1 className="font-serif text-[30px] leading-tight font-bold">Tekrar hoş geldin.</h1>
+      <p className="mt-1.5 text-ink-muted">Kullanıcı adın ve şifrenle gir.</p>
+      <div className="mt-10">
         <Suspense>
           <LoginForm searchParams={searchParams} />
         </Suspense>

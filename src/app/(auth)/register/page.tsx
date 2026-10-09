@@ -9,9 +9,9 @@ export const metadata: Metadata = { title: "Kayıt ol" };
 export default function RegisterPage({ searchParams }: PageProps<"/register">) {
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight text-white">Hesap oluştur</h1>
-      <p className="mt-1.5 text-sm text-zinc-400">Kullanıcı adı ve şifre seç, hemen çalışmaya başla.</p>
-      <div className="mt-8">
+      <h1 className="font-serif text-[30px] leading-tight font-bold">Hesap aç.</h1>
+      <p className="mt-1.5 text-ink-muted">Bir kullanıcı adı ve şifre seç. E-posta istemiyoruz.</p>
+      <div className="mt-10">
         <Suspense>
           <RegisterForm searchParams={searchParams} />
         </Suspense>

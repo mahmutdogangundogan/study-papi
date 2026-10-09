@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Form from "next/form";
 import { joinPublicRoom } from "@/actions/rooms";
-import { RoomCard } from "@/components/room-card";
-import { inputClass } from "@/components/ui/form";
+import { RoomRow } from "@/components/room-card";
 import { searchPublicRooms } from "@/lib/data";
 import { requireUser } from "@/lib/session";
 
@@ -15,45 +14,38 @@ export default async function ExplorePage({ searchParams }: PageProps<"/explore"
   const rooms = await searchPublicRooms(user.id, query);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">Public odalar</h1>
-        <p className="mt-1 text-sm text-zinc-400">Private odalara sadece davet linki ya da kodla girilebilir.</p>
-      </div>
+    <div className="space-y-8">
+      <header>
+        <h1 className="font-serif text-[30px] leading-tight font-bold">Herkese açık odalar</h1>
+        <p className="mt-1.5 text-ink-muted">Çalışanı en çok olan oda en üstte. Özel odalar burada listelenmez.</p>
+      </header>
 
-      <Form action="/explore" className="flex gap-2">
-        <input
-          type="search"
-          name="q"
-          defaultValue={query}
-          placeholder="Oda ara…"
-          aria-label="Oda ara"
-          className={inputClass}
-        />
-        <button type="submit" className="h-12 shrink-0 rounded-xl bg-white/10 px-5 font-medium text-white">
+      <Form action="/explore" className="flex items-end gap-3">
+        <label className="flex-1">
+          <span className="block text-[13px] font-medium text-ink-muted">Oda adı</span>
+          <input type="search" name="q" defaultValue={query} placeholder="Örneğin: KPSS" className="field" />
+        </label>
+        <button type="submit" className="btn-secondary btn-sm mb-1">
           Ara
         </button>
       </Form>
 
       {rooms.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-sm text-zinc-400">
-          {query ? `“${query}” ile eşleşen public oda yok.` : "Henüz public oda yok. İlkini sen aç!"}
+        <p className="border-y border-rule py-8 font-serif text-[17px] text-ink-muted italic">
+          {query ? `“${query}” adında herkese açık bir oda yok.` : "Henüz herkese açık oda yok. İlkini sen açabilirsin."}
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="ledger -mx-4 sm:mx-0">
           {rooms.map((room) => (
-            <RoomCard
+            <RoomRow
               key={room.id}
               {...room}
               action={
                 room.isMember ? (
-                  <span className="text-xs font-medium text-zinc-500">Üyesin</span>
+                  <span className="text-[13px] text-ink-muted">Üyesin</span>
                 ) : (
                   <form action={joinPublicRoom.bind(null, room.id)}>
-                    <button
-                      type="submit"
-                      className="h-9 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-emerald-950 active:scale-[0.97]"
-                    >
+                    <button type="submit" className="btn-primary btn-sm">
                       Katıl
                     </button>
                   </form>

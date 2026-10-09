@@ -130,6 +130,7 @@ export async function getRoomMembersLive(roomId: string) {
       displayName: users.displayName,
       role: roomMembers.role,
       activeSince: studySessions.startedAt,
+      lastEndedAt: sql<number | null>`(select (extract(epoch from max(s2.ended_at)) * 1000)::float8 from ${studySessions} s2 where s2.user_id = ${users}."id")`,
       todaySeconds: todaySecondsFor(sql`${users}."id"`),
     })
     .from(roomMembers)
@@ -139,7 +140,11 @@ export async function getRoomMembersLive(roomId: string) {
 
   return {
     serverNow: new Date().toISOString(),
-    members: rows.map((r) => ({ ...r, activeSince: r.activeSince?.toISOString() ?? null })),
+    members: rows.map((r) => ({
+      ...r,
+      activeSince: r.activeSince?.toISOString() ?? null,
+      lastEndedAt: r.lastEndedAt ? new Date(r.lastEndedAt).toISOString() : null,
+    })),
   };
 }
 

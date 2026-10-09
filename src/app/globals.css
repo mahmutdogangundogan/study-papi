@@ -1,16 +1,261 @@
 @import "tailwindcss";
 
+/*
+ * "Okuma salonu" teması: serin, çizgili defter kağıdı + mavi-siyah dolma kalem mürekkebi.
+ * Mavi = aksiyon, sarı = şu an çalışan (lamba / fosforlu kalem). Başka renk yok.
+ */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-literata);
+  --font-sans: var(--font-schibsted);
+
+  --color-paper: #eef1e8;
+  --color-sheet: #fafbf6;
+  --color-ink: #1b2340;
+  --color-ink-muted: #5e6672;
+  --color-rule: #c5d0df;
+  --color-line: #d3d8cb;
+  --color-margin: #e3988f;
+  --color-accent: #2340c8;
+  --color-accent-deep: #15297f;
+  --color-lamp: #ffd84d;
+  --color-lamp-ink: #8a5f00;
+  --color-danger: #b3261e;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  background: var(--color-zinc-950);
-  color: var(--color-zinc-100);
+  background: var(--color-paper);
+  color: var(--color-ink);
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Kağıt dokusu */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--color-lamp);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .numerals {
+    font-family: var(--font-serif);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  /* Basılınca çöken, klavye tuşu gibi birincil buton */
+  .btn-primary {
+    display: inline-flex;
+    height: 52px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 6px;
+    background: var(--color-accent);
+    padding: 0 20px;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 3px 0 var(--color-accent-deep);
+    transition:
+      transform 80ms,
+      box-shadow 80ms;
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--color-accent-deep);
+  }
+  .btn-primary:disabled {
+    opacity: 0.6;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    height: 52px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 6px;
+    border: 1.5px solid var(--color-ink);
+    padding: 0 20px;
+    color: var(--color-ink);
+    font-weight: 600;
+    transition: background-color 120ms;
+  }
+  .btn-secondary:hover {
+    background: rgb(27 35 64 / 0.04);
+  }
+  .btn-secondary:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn-secondary:disabled {
+    opacity: 0.6;
+  }
+
+  .btn-sm {
+    height: 38px;
+    padding: 0 14px;
+    font-size: 15px;
+  }
+
+  /* Boşluk doldurma çizgisi gibi input */
+  .field {
+    width: 100%;
+    height: 48px;
+    border: 0;
+    border-bottom: 1.5px solid var(--color-ink-muted);
+    background: transparent;
+    padding: 0 2px;
+    font-size: 17px;
+    color: var(--color-ink);
+    border-radius: 0;
+    outline: none;
+    transition: border-color 120ms;
+  }
+  .field::placeholder {
+    color: rgb(94 102 114 / 0.7);
+  }
+  .field:focus {
+    border-bottom: 2px solid var(--color-accent);
+    padding-bottom: 0;
+  }
+  textarea.field {
+    height: auto;
+    min-height: 96px;
+    padding-top: 10px;
+    line-height: 1.5;
+    resize: vertical;
+    background-image: repeating-linear-gradient(
+      transparent 0 25px,
+      var(--color-rule) 25px 26px
+    );
+    background-position: 0 9px;
+  }
+
+  .sheet {
+    background: var(--color-sheet);
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgb(27 35 64 / 0.08);
+  }
+
+  /* Defter sayfası: mavi satır çizgileri + kırmızı kenar boşluğu çizgisi */
+  .ledger {
+    background: linear-gradient(var(--color-margin), var(--color-margin)) 52px 0 / 1px 100% no-repeat;
+    border-top: 1px solid var(--color-rule);
+  }
+  .ledger > li {
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  /* Lastik damga rozeti */
+  .stamp {
+    display: inline-block;
+    border: 1.5px solid currentColor;
+    border-radius: 3px;
+    padding: 1px 7px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    transform: rotate(-2deg);
+    white-space: nowrap;
+  }
+
+  /* Çalışanın adının altındaki fosforlu kalem */
+  .highlight {
+    background-image: linear-gradient(transparent 28%, var(--color-lamp) 28% 98%, transparent 98%);
+    background-repeat: no-repeat;
+    background-size: 0% 100%;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    padding: 0 2px;
+    margin: 0 -2px;
+  }
+  .highlight[data-on="true"] {
+    background-size: 100% 100%;
+  }
+
+  /* Bilet koçanı: kenarlarda yarım daire çentikler */
+  .ticket {
+    background: var(--color-sheet);
+    border: 1.5px dashed var(--color-line);
+    border-radius: 4px;
+    -webkit-mask:
+      radial-gradient(circle 10px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 10px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle 10px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 10px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+  }
+
+  .graph-paper {
+    background-image:
+      repeating-linear-gradient(0deg, rgb(197 208 223 / 0.45) 0 1px, transparent 1px 24px),
+      repeating-linear-gradient(90deg, rgb(197 208 223 / 0.45) 0 1px, transparent 1px 24px);
+  }
+
+  .squiggle {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='6' viewBox='0 0 28 6'%3E%3Cpath d='M1 4c3-3 5-3 8 0s5 3 8 0 5-3 9 0' fill='none' stroke='%232340c8' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E")
+      center / 28px 6px no-repeat;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .highlight {
+    transition: background-size 420ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .lamp-cone {
+    transition: opacity 180ms ease-out;
+  }
+  .ticking-colon {
+    animation: blink 1s steps(2, jump-none) infinite;
+  }
+  .ink-in {
+    animation: ink-in 300ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .stamp-in {
+    animation: stamp-in 160ms ease-out both;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes ink-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes stamp-in {
+  from {
+    transform: scale(1.15) rotate(-4deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(-4deg);
+    opacity: 1;
+  }
 }

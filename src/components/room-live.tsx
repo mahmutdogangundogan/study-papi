@@ -1,18 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RoomLiveData } from "@/lib/data";
-import { elapsedSeconds, formatClock, formatDuration, syncClock, useNow } from "./clock";
+import { elapsedSeconds, formatDuration, syncClock, useNow } from "./clock";
+import { Lamp } from "./lamp";
+import { Clock } from "./timer-ui";
 import { useTimer } from "./timer-provider";
 
 const POLL_MS = 5000;
+const TZ = "Europe/Istanbul";
+const dayFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: TZ, dateStyle: "short" });
+const timeFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
 
-type LiveData = RoomLiveData;
-
-export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: string; initial: LiveData }) {
+export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: string; initial: RoomLiveData }) {
   const [data, setData] = useState(initial);
+  const [announcement, setAnnouncement] = useState("");
   const { state: myTimer, version } = useTimer();
   const now = useNow();
+  const previous = useRef(new Map(initial.members.map((m) => [m.userId, m.activeSince !== null])));
 
   useEffect(() => {
     let controller: AbortController | undefined;
@@ -23,8 +28,17 @@ export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: stri
       try {
         const res = await fetch(`/api/rooms/${roomId}/live`, { signal: controller.signal, cache: "no-store" });
         if (!res.ok) return;
-        const next: LiveData = await res.json();
+        const next: RoomLiveData = await res.json();
         syncClock(next.serverNow);
+
+        // Ekran okuyucular için sadece durum değişikliklerini duyur, her saniyeyi değil
+        const changes = next.members
+          .filter((m) => m.userId !== meId)
+          .filter((m) => previous.current.has(m.userId) && previous.current.get(m.userId) !== (m.activeSince !== null))
+          .map((m) => `${m.displayName} ${m.activeSince ? "çalışmaya başladı" : "ara verdi"}`);
+        if (changes.length) setAnnouncement(changes.join(". "));
+        previous.current = new Map(next.members.map((m) => [m.userId, m.activeSince !== null]));
+
         setData(next);
       } catch {
         // ağ hatası veya iptal: bir sonraki turda tekrar denenir
@@ -39,7 +53,7 @@ export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: stri
       document.removeEventListener("visibilitychange", load);
       controller?.abort();
     };
-  }, [roomId, version]);
+  }, [roomId, meId, version]);
 
   // Kendi satırımı sunucu cevabını beklemeden kendi timer state'imden göster
   const members = data.members.map((m) =>
@@ -53,67 +67,66 @@ export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: stri
     return b.todaySeconds - a.todaySeconds;
   });
   const studying = members.filter((m) => m.activeSince).length;
+  const today = now ? dayFmt.format(now) : null;
 
   return (
     <section>
-      <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-base font-semibold text-white">Odadakiler</h2>
-        <p className="text-sm text-zinc-400">
-          <span className="font-medium text-emerald-300">{studying}</span> / {members.length} kişi çalışıyor
+      <div className="flex items-baseline justify-between gap-4 pb-3">
+        <h2 className="font-serif text-[22px] font-bold">Masadakiler</h2>
+        <p className="text-[14px] text-ink-muted">
+          {studying === 0
+            ? "Şu an kimse çalışmıyor"
+            : studying === members.length
+              ? "Herkes çalışıyor"
+              : `${studying} kişi çalışıyor, ${members.length - studying} kişi molada`}
         </p>
       </div>
-      <ul className="divide-y divide-white/5 overflow-hidden rounded-2xl bg-white/[0.03] ring-1 ring-white/10">
+      <p className="sr-only" aria-live="polite">
+        {announcement}
+      </p>
+      <ul className="ledger -mx-4 sm:mx-0">
         {members.map((m) => {
           const active = m.activeSince !== null;
           const elapsed = active && now ? elapsedSeconds(m.activeSince!, now) : 0;
-          const today = m.todaySeconds + (active && now ? elapsedSeconds(m.asOf, now) : 0);
+          const todayTotal = m.todaySeconds + (active && now ? elapsedSeconds(m.asOf, now) : 0);
+          const lastToday = m.lastEndedAt && today && dayFmt.format(new Date(m.lastEndedAt)) === today;
           return (
-            <li key={m.userId} className="flex items-center gap-3 px-4 py-3">
-              <Avatar name={m.displayName} active={active} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-white">
-                  {m.displayName}
-                  {m.userId === meId && <span className="text-zinc-500"> (sen)</span>}
-                  {m.role === "owner" && (
-                    <span className="ml-1.5 rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300 uppercase">
-                      sahip
+            <li key={m.userId} className="ink-in flex min-h-16 items-center">
+              <span className="flex w-[52px] shrink-0 justify-center self-stretch pt-3">
+                <Lamp on={active} size={24} />
+              </span>
+              <div className="min-w-0 flex-1 py-3 pl-3.5">
+                <p className="flex items-center gap-2 font-semibold">
+                  <span className="truncate">
+                    <span className="highlight" data-on={active}>
+                      {m.displayName}
                     </span>
+                    {m.userId === meId && <span className="font-normal text-ink-muted"> (sen)</span>}
+                  </span>
+                  {m.role === "owner" && <span className="stamp text-ink-muted">Oda sahibi</span>}
+                </p>
+                <p className="mt-0.5 truncate text-[13px] text-ink-muted">
+                  {active ? (
+                    <span className="font-medium text-lamp-ink">çalışıyor</span>
+                  ) : lastToday ? (
+                    `molada, son ${timeFmt.format(new Date(m.lastEndedAt!))}`
+                  ) : (
+                    "molada"
                   )}
                 </p>
-                <p className="truncate text-xs text-zinc-500">
-                  @{m.username} · bugün {now ? formatDuration(today) : "—"}
-                </p>
               </div>
-              {active ? (
-                <span className="font-mono text-sm font-semibold text-emerald-300 tabular-nums">
-                  {now ? formatClock(elapsed) : "--:--:--"}
+              <div className="shrink-0 py-3 pr-4 text-right sm:pr-2">
+                {active && (
+                  <Clock seconds={now ? elapsed : 0} running className="block text-[20px] leading-tight font-medium" />
+                )}
+                <span className="block text-[13px] text-ink-muted">
+                  bugün <span className="numerals">{now ? formatDuration(todayTotal) : "…"}</span>
                 </span>
-              ) : (
-                <span className="text-xs text-zinc-500">mola</span>
-              )}
+              </div>
             </li>
           );
         })}
       </ul>
     </section>
-  );
-}
-
-function Avatar({ name, active }: { name: string; active: boolean }) {
-  const initials = name
-    .split(/\s+/)
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toLocaleUpperCase("tr");
-  return (
-    <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-200">
-      {initials}
-      <span
-        className={`absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-zinc-950 ${
-          active ? "bg-emerald-400" : "bg-zinc-600"
-        }`}
-      />
-    </span>
   );
 }

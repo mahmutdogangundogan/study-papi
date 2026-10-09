@@ -8,25 +8,27 @@ const items = [
     href: "/rooms",
     label: "Odalarım",
     match: (p: string) => p === "/rooms" || (p.startsWith("/rooms/") && p !== "/rooms/new"),
-    icon: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
+    // açık defter
+    icon: "M3 5.5C5.5 4.5 8.5 4.5 12 6.5c3.5-2 6.5-2 9-1V19c-2.5-1-5.5-1-9 1-3.5-2-6.5-2-9-1zM12 6.5V20",
   },
   {
     href: "/explore",
     label: "Keşfet",
     match: (p: string) => p.startsWith("/explore"),
-    icon: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm10 17-4.35-4.35",
+    icon: "M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM15.5 15.5 20 20",
   },
   {
     href: "/rooms/new",
     label: "Oda aç",
     match: (p: string) => p === "/rooms/new",
-    icon: "M12 5v14M5 12h14",
+    // dolma kalem
+    icon: "M14.5 4.5l5 5L9 20H4v-5zM12.5 6.5l5 5",
   },
 ];
 
 function Icon({ d }: { d: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" className="size-[22px]" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d={d} />
     </svg>
   );
@@ -35,18 +37,21 @@ function Icon({ d }: { d: string }) {
 export function DesktopNav() {
   const pathname = usePathname();
   return (
-    <nav className="hidden items-center gap-1 md:flex">
-      {items.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-            item.match(pathname) ? "bg-white/10 text-white" : "text-zinc-400 hover:text-white"
-          }`}
-        >
-          {item.label}
-        </Link>
-      ))}
+    <nav className="hidden items-center gap-6 md:flex">
+      {items.map((item) => {
+        const active = item.match(pathname);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            className={`relative pb-1.5 text-[15px] font-medium ${active ? "text-ink" : "text-ink-muted hover:text-ink"}`}
+          >
+            {item.label}
+            {active && <span className="squiggle absolute inset-x-0 -bottom-0.5 h-1.5" />}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
@@ -54,21 +59,28 @@ export function DesktopNav() {
 export function MobileNav() {
   const pathname = usePathname();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-zinc-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-sheet pb-[env(safe-area-inset-bottom)] md:hidden">
       <ul className="grid grid-cols-3">
-        {items.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              className={`flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium ${
-                item.match(pathname) ? "text-emerald-400" : "text-zinc-400"
-              }`}
-            >
-              <Icon d={item.icon} />
-              {item.label}
-            </Link>
-          </li>
-        ))}
+        {items.map((item) => {
+          const active = item.match(pathname);
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`flex h-16 flex-col items-center justify-center gap-0.5 text-[12px] font-medium ${
+                  active ? "text-ink" : "text-ink-muted"
+                }`}
+              >
+                <Icon d={item.icon} />
+                <span className="relative pb-1.5">
+                  {item.label}
+                  <span className={`squiggle absolute inset-x-0 -bottom-0.5 h-1.5 ${active ? "" : "invisible"}`} />
+                </span>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );

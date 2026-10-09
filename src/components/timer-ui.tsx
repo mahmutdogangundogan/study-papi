@@ -1,6 +1,7 @@
 "use client";
 
-import { elapsedSeconds, formatClock, formatDuration, useNow } from "./clock";
+import { elapsedSeconds, formatDuration, useNow } from "./clock";
+import { Lamp } from "./lamp";
 import { useTimer } from "./timer-provider";
 
 function useMyTimer() {
@@ -13,59 +14,74 @@ function useMyTimer() {
   return { active, elapsed, today, ready: now !== null, pending, toggle };
 }
 
-export function TimerPill() {
+function parts(totalSeconds: number) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return [
+    pad(Math.floor(totalSeconds / 3600)),
+    pad(Math.floor((totalSeconds % 3600) / 60)),
+    pad(totalSeconds % 60),
+  ];
+}
+
+/** Rakamlar mürekkep, iki nokta soluk; timer çalışırken iki nokta yanıp söner */
+export function Clock({ seconds, running, className = "" }: { seconds: number; running: boolean; className?: string }) {
+  const [h, m, s] = parts(seconds);
+  const colon = <span className={`text-ink-muted ${running ? "ticking-colon" : ""}`}>:</span>;
+  return (
+    <span className={`numerals ${running ? "text-ink" : "text-ink-muted"} ${className}`}>
+      {h}
+      {colon}
+      {m}
+      {colon}
+      {s}
+    </span>
+  );
+}
+
+export function TimerChip() {
   const { active, elapsed, ready, pending, toggle } = useMyTimer();
   return (
     <button
       type="button"
       onClick={toggle}
       disabled={pending}
-      aria-label={active ? "Timer'ı durdur" : "Çalışmaya başla"}
-      className={`flex h-9 items-center gap-2 rounded-full px-3.5 text-sm font-medium tabular-nums transition disabled:opacity-60 ${
-        active
-          ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30"
-          : "bg-white/5 text-zinc-300 ring-1 ring-white/10 hover:bg-white/10"
+      aria-label={active ? "Ara ver" : "Çalışmaya başla"}
+      className={`flex h-10 items-center gap-2 rounded-md border px-2.5 transition disabled:opacity-60 ${
+        active ? "border-lamp-ink/40 bg-lamp/35" : "border-line bg-sheet"
       }`}
     >
-      <span
-        className={`size-2 rounded-full ${active ? "animate-pulse bg-emerald-400" : "bg-zinc-500"}`}
-      />
-      {active ? (ready ? formatClock(elapsed) : "--:--:--") : "Başla"}
+      <Lamp on={active} size={16} />
+      {active ? (
+        <Clock seconds={ready ? elapsed : 0} running className="text-[17px] font-medium" />
+      ) : (
+        <span className="text-[15px] font-semibold">Başla</span>
+      )}
     </button>
   );
 }
 
-export function TimerCard() {
+export function TimerDesk() {
   const { active, elapsed, today, ready, pending, toggle } = useMyTimer();
   return (
-    <section
-      className={`rounded-3xl p-6 text-center ring-1 transition ${
-        active ? "bg-emerald-500/10 ring-emerald-400/30" : "bg-white/[0.03] ring-white/10"
-      }`}
-    >
-      <p className={`text-sm font-medium ${active ? "text-emerald-300" : "text-zinc-400"}`}>
-        {active ? "Çalışıyorsun" : "Şu an çalışmıyorsun"}
+    <section aria-label="Senin timer'ın" className="flex flex-col items-center pt-2 text-center">
+      <Lamp on={active} size={44} />
+      <p className="mt-4 font-serif text-[15px] text-ink-muted">
+        {active ? "Lamban yanıyor." : "Lamban kapalı."} Bugün toplam{" "}
+        <span className="numerals text-ink">{ready ? formatDuration(today) : "…"}</span>
       </p>
-      <p className="mt-2 font-mono text-5xl font-semibold tracking-tight text-white tabular-nums sm:text-6xl">
-        {ready ? formatClock(elapsed) : "00:00:00"}
-      </p>
-      <p className="mt-2 text-sm text-zinc-400">
-        Bugün toplam: <span className="text-zinc-200">{ready ? formatDuration(today) : "—"}</span>
+      <p className="mt-1 text-[clamp(72px,24vw,128px)] leading-none font-light tracking-[-0.02em] [font-variation-settings:'opsz'_72]">
+        <Clock seconds={ready ? elapsed : 0} running={active} />
       </p>
       <button
         type="button"
         onClick={toggle}
         disabled={pending}
-        className={`mt-6 h-14 w-full rounded-2xl text-base font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
-          active
-            ? "bg-zinc-800 text-white ring-1 ring-white/10 hover:bg-zinc-700"
-            : "bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
-        }`}
+        className={`mt-8 w-full sm:max-w-xs ${active ? "btn-secondary" : "btn-primary"}`}
       >
-        {pending ? "…" : active ? "Mola ver" : "Çalışmaya başla"}
+        {active ? "Ara ver" : "Çalışmaya başla"}
       </button>
-      <p className="mt-3 text-xs text-zinc-500">
-        Timer sana ait: üye olduğun tüm odalarda seni çalışıyor olarak görürler.
+      <p className="mt-3 max-w-xs text-[13px] text-ink-muted">
+        Timer’ın sana ait. Üye olduğun bütün odalarda aynı anda görünür.
       </p>
     </section>
   );

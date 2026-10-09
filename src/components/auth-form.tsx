@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { login, register, type AuthFormState } from "@/actions/auth";
-import { Field, FormError, primaryButtonClass } from "@/components/ui/form";
+import { Field, FormError } from "@/components/ui/form";
 
 export function AuthForm({ mode, next }: { mode: "login" | "register"; next?: string }) {
   const [state, action, pending] = useActionState<AuthFormState, FormData>(
@@ -13,7 +13,7 @@ export function AuthForm({ mode, next }: { mode: "login" | "register"; next?: st
   const nextQuery = next ? `?next=${encodeURIComponent(next)}` : "";
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="space-y-6">
       {next && <input type="hidden" name="next" value={next} />}
       <Field
         label="Kullanıcı adı"
@@ -24,14 +24,14 @@ export function AuthForm({ mode, next }: { mode: "login" | "register"; next?: st
         spellCheck={false}
         required
         defaultValue={state.fields?.username}
-        hint={mode === "register" ? "3-24 karakter; harf, rakam, _ ve ." : undefined}
+        hint={mode === "register" ? "3 ile 24 karakter arası. Harf, rakam, alt çizgi ve nokta olabilir." : undefined}
       />
       {mode === "register" && (
         <Field
           label="Görünen ad"
           name="displayName"
           autoComplete="nickname"
-          placeholder="Arkadaşların seni bu isimle görür"
+          hint="Odadakiler seni bu isimle görür."
           maxLength={40}
           defaultValue={state.fields?.displayName}
         />
@@ -46,21 +46,21 @@ export function AuthForm({ mode, next }: { mode: "login" | "register"; next?: st
         hint={mode === "register" ? "En az 8 karakter" : undefined}
       />
       <FormError message={state.error} />
-      <button type="submit" disabled={pending} className={primaryButtonClass}>
+      <button type="submit" disabled={pending} className="btn-primary w-full">
         {pending ? "…" : mode === "login" ? "Giriş yap" : "Hesap oluştur"}
       </button>
-      <p className="text-center text-sm text-zinc-400">
+      <p className="text-[15px] text-ink-muted">
         {mode === "login" ? (
           <>
             Hesabın yok mu?{" "}
-            <Link href={`/register${nextQuery}`} className="font-medium text-emerald-400">
+            <Link href={`/register${nextQuery}`} className="font-semibold text-accent underline underline-offset-4">
               Kayıt ol
             </Link>
           </>
         ) : (
           <>
             Zaten hesabın var mı?{" "}
-            <Link href={`/login${nextQuery}`} className="font-medium text-emerald-400">
+            <Link href={`/login${nextQuery}`} className="font-semibold text-accent underline underline-offset-4">
               Giriş yap
             </Link>
           </>

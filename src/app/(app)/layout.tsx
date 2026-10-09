@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { logout } from "@/actions/auth";
 import { DesktopNav, MobileNav } from "@/components/app-nav";
 import { TimerProvider } from "@/components/timer-provider";
-import { TimerPill } from "@/components/timer-ui";
+import { TimerChip } from "@/components/timer-ui";
 import { Logo } from "@/components/ui/logo";
 import { getTimerState } from "@/lib/data";
 import { requireUser } from "@/lib/session";
@@ -25,20 +25,20 @@ async function AppFrame({ children }: { children: React.ReactNode }) {
 
   return (
     <TimerProvider initial={timer}>
-      <header className="sticky top-0 z-20 border-b border-white/5 bg-zinc-950/85 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
+      <header className="sticky top-0 z-20 border-b border-line bg-paper pt-[env(safe-area-inset-top)]">
+        <div className="mx-auto flex h-16 max-w-2xl items-center gap-8 px-4">
           <Logo href="/rooms" />
           <DesktopNav />
           <div className="ml-auto flex items-center gap-2">
-            <TimerPill />
+            <TimerChip />
             <form action={logout}>
               <button
                 type="submit"
                 title={`Çıkış yap (@${user.username})`}
-                className="grid size-9 place-items-center rounded-full text-zinc-400 ring-1 ring-white/10 hover:text-white"
+                className="grid size-10 place-items-center rounded-md text-ink-muted hover:text-ink"
               >
-                <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H3" />
+                <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M14 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l4-4-4-4M14 12H4" />
                 </svg>
                 <span className="sr-only">Çıkış yap</span>
               </button>
@@ -46,7 +46,7 @@ async function AppFrame({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-5 pb-28 md:pb-12">{children}</main>
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-7 pb-28 md:pb-16">{children}</main>
       <MobileNav />
     </TimerProvider>
   );
@@ -55,11 +55,9 @@ async function AppFrame({ children }: { children: React.ReactNode }) {
 function AppSkeleton() {
   return (
     <>
-      <header className="h-14 border-b border-white/5" />
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-3 px-4 pt-5">
-        <div className="h-8 w-40 animate-pulse rounded-lg bg-white/5" />
-        <div className="h-24 animate-pulse rounded-2xl bg-white/5" />
-        <div className="h-24 animate-pulse rounded-2xl bg-white/5" />
+      <header className="h-16 border-b border-line" />
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-7">
+        <p className="font-serif text-[15px] text-ink-muted italic">Defter açılıyor…</p>
       </main>
     </>
   );

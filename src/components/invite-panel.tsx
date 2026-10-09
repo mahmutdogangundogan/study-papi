@@ -13,51 +13,53 @@ export function InvitePanel({ code, roomName }: { code: string; roomName: string
     try {
       await navigator.clipboard.writeText(kind === "link" ? inviteUrl() : code);
       setCopied(kind);
-      setTimeout(() => setCopied(null), 1500);
+      setTimeout(() => setCopied(null), 1400);
     } catch {
       // panoya erişim yoksa sessizce geç
     }
   }
 
   async function share() {
-    const data = { title: roomName, text: `"${roomName}" odasında birlikte çalışalım!`, url: inviteUrl() };
-    if (navigator.share) {
-      try {
-        await navigator.share(data);
-        return;
-      } catch {
-        // kullanıcı paylaşımı iptal etti
-        return;
-      }
+    if (!navigator.share) return copy("link");
+    try {
+      await navigator.share({ title: roomName, text: `"${roomName}" odasında birlikte çalışalım.`, url: inviteUrl() });
+    } catch {
+      // kullanıcı paylaşımı iptal etti
     }
-    copy("link");
   }
 
   return (
-    <section className="rounded-2xl bg-white/[0.03] p-4 ring-1 ring-white/10">
-      <h2 className="text-sm font-medium text-zinc-300">Arkadaşlarını davet et</h2>
-      <div className="mt-3 flex items-center gap-2">
+    <section aria-labelledby="invite-title">
+      <h2 id="invite-title" className="font-serif text-[22px] font-bold">
+        Davet bileti
+      </h2>
+      <p className="mt-1 text-[14px] text-ink-muted">Kodu ya da linki gönder; alan kişi doğrudan bu masaya oturur.</p>
+      <div className="ticket relative mt-4 px-8 py-5 text-center">
+        <p className="text-[13px] font-medium text-ink-muted">Oda kodu</p>
         <button
           type="button"
           onClick={() => copy("code")}
-          className="flex-1 rounded-xl bg-zinc-900 px-4 py-3 text-left font-mono text-lg font-semibold tracking-[0.2em] text-white ring-1 ring-white/10"
           title="Kodu kopyala"
+          lang="en"
+          className="numerals mt-1 text-[30px] font-semibold tracking-[0.08em]"
         >
           {code.slice(0, 4)}-{code.slice(4)}
-          <span className="ml-2 font-sans text-xs font-normal tracking-normal text-zinc-500">
-            {copied === "code" ? "kopyalandı" : "kodu kopyala"}
+        </button>
+        {copied && (
+          <span
+            key={copied}
+            className="stamp stamp-in absolute top-3 right-6 bg-sheet text-accent"
+            style={{ transform: "rotate(-4deg)" }}
+          >
+            {copied === "code" ? "Kod kopyalandı" : "Link kopyalandı"}
           </span>
-        </button>
+        )}
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => copy("link")}
-          className="h-11 rounded-xl bg-white/5 text-sm font-medium text-white ring-1 ring-white/10"
-        >
-          {copied === "link" ? "Link kopyalandı ✓" : "Linki kopyala"}
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <button type="button" onClick={() => copy("link")} className="btn-secondary btn-sm">
+          Linki kopyala
         </button>
-        <button type="button" onClick={share} className="h-11 rounded-xl bg-white text-sm font-semibold text-zinc-950">
+        <button type="button" onClick={share} className="btn-primary btn-sm">
           Paylaş
         </button>
       </div>
