@@ -43,3 +43,9 @@ Saniyelik sayma istemcide yapılır. Telefonun saati yanlış olsa bile süreler
 ## Scriptler
 
 `pnpm db:generate` (şemadan migration üretir) · `pnpm db:migrate` · `pnpm db:studio` · `pnpm db:seed` · `pnpm lint` · `pnpm build`
+
+## Katkıda bulunanlar
+
+- [@mahmutdogangundogan](https://github.com/mahmutdogangundogan)
+- [@sadecehus](https://github.com/sadecehus)
+- [@eminkay](https://github.com/eminkay)
