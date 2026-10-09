@@ -20,6 +20,7 @@ Postgres portunu değiştirmek için `POSTGRES_PORT=5432 pnpm db:up` yaz ve `.en
 ## Kurallar
 
 - **Timer bugünkü toplamı gösterir.** Ara verince durur, devam edince kaldığı yerden sayar, her gece 03.00'te (TSİ, `src/lib/study-day.ts`) sıfırlanır; gece yarısını geçen çalışma önceki güne sayılır. Açık sekme kendi timer durumunu 30 sn'de bir tazeler; başka cihazdan başlatılan timer da görünür.
+- **Unutulan timer kendiliğinden durur.** Timer 3 saat kesintisiz çalışınca "Hâlâ çalışıyor musun?" diye sorar. 1 saat içinde onaylanırsa o süre de sayılır ve 3 saat sonra yine sorar. Onaylanmazsa timer durur ve sorunun çıktığı andan sonrası sayılmaz. Süreler `src/lib/timer-rules.ts` içinde. Ayrı bir zamanlanmış görev yok; süresi dolanlar, timer durumunu okuyan sorgulardan önce kapatılır.
 - **Timer kişiye aittir, odaya değil.** `study_sessions` tablosunda `ended_at` değeri boş olan kayıt, o kişinin çalışan timer'ıdır. Kısmi bir unique index (`study_sessions_one_active_per_user`) aynı anda birden fazla açık timer olmasını engeller. Kişi 3 odadaysa 3 odada da aynı timer görünür.
 - **Odalar public ya da private olabilir.** Public odalar Keşfet sayfasında aranabilir. Private odalara yalnızca davet linkiyle (`/join/KOD`) ya da kodla girilir; oda üyesi olmayan biri private odayı göremez.
 - **Oda kodu unique'tir** (8 karakter, karışabilecek 0/O ve 1/I harfleri hariç). Davet linki de aynı kodu kullanır. Oda sahibi kodu yenileyebilir; bu durumda eski link ve kod geçersiz olur.

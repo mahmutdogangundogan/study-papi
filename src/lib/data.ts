@@ -5,10 +5,24 @@ import { and, desc, eq, ilike, isNull, sql, type SQLWrapper } from "drizzle-orm"
 import { db } from "@/db";
 import { roomMembers, rooms, studySessions, users } from "@/db/schema";
 import { DAY_RESET_HOUR, STUDY_TZ } from "@/lib/study-day";
+import { CONFIRM_HOURS, GRACE_MINUTES } from "@/lib/timer-rules";
 
 // Çalışma gününün başlangıcı: TSİ ile en son geçilen 03.00
 const resetOffset = `${DAY_RESET_HOUR} hours`;
 const todayStart = sql`((date_trunc('day', (now() at time zone ${STUDY_TZ}) - ${resetOffset}::interval) + ${resetOffset}::interval) at time zone ${STUDY_TZ})`;
+
+export const confirmWindow = sql`${`${CONFIRM_HOURS} hours`}::interval`;
+export const graceWindow = sql`${`${GRACE_MINUTES} minutes`}::interval`;
+
+// Soru çıktıktan sonra onay süresi de dolmuş açık timer'ları, sorunun çıktığı anda durmuş olarak kapat.
+// Zamanlanmış görev yerine timer durumunu okuyan her sorgudan önce çağrılır; açık
+// timer'lar kısmi unique index'te olduğu için ucuzdur.
+export async function closeExpiredSessions() {
+  await db
+    .update(studySessions)
+    .set({ endedAt: sql`${studySessions.confirmedUntil}`, autoStopped: true })
+    .where(and(isNull(studySessions.endedAt), sql`${studySessions.confirmedUntil} + ${graceWindow} <= now()`));
+}
 
 // Karışmasın diye 0/O, 1/I gibi karakterler yok
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -40,6 +54,7 @@ const studyingCount = sql<number>`(
 )`;
 
 export async function getMyRooms(userId: string) {
+  await closeExpiredSessions();
   return db
     .select({
       id: rooms.id,
@@ -57,6 +72,7 @@ export async function getMyRooms(userId: string) {
 }
 
 export async function searchPublicRooms(userId: string, query: string) {
+  await closeExpiredSessions();
   const q = query.trim();
   return db
     .select({
@@ -124,6 +140,7 @@ const todaySecondsFor = (userId: SQLWrapper) => sql<number>`(
 
 export async function getRoomMembersLive(roomId: string) {
   await connection();
+  await closeExpiredSessions();
   const rows = await db
     .select({
       userId: users.id,
@@ -154,17 +171,29 @@ export type LiveMember = RoomLiveData["members"][number];
 
 export async function getTimerState(userId: string) {
   await connection();
+  await closeExpiredSessions();
   const [row] = await db
-    .select({ startedAt: studySessions.startedAt })
+    .select({ startedAt: studySessions.startedAt, confirmedUntil: studySessions.confirmedUntil })
     .from(studySessions)
     .where(and(eq(studySessions.userId, userId), isNull(studySessions.endedAt)))
     .limit(1);
   const [today] = await db.execute<{ seconds: number }>(
     sql`select ${todaySecondsFor(sql`${userId}::uuid`)} as seconds`,
   );
+  // Son timer'ı bugün onaysız kaldığı için durduysa kullanıcıya söyle
+  const [last] = row
+    ? []
+    : await db
+        .select({ endedAt: studySessions.endedAt, autoStopped: studySessions.autoStopped })
+        .from(studySessions)
+        .where(and(eq(studySessions.userId, userId), sql`${studySessions.endedAt} > ${todayStart}`))
+        .orderBy(desc(studySessions.endedAt))
+        .limit(1);
 
   return {
     activeSince: row?.startedAt.toISOString() ?? null,
+    confirmedUntil: row?.confirmedUntil.toISOString() ?? null,
+    autoStoppedAt: last?.autoStopped ? last.endedAt!.toISOString() : null,
     todaySeconds: today?.seconds ?? 0,
     serverNow: new Date().toISOString(),
   };

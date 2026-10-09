@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   pgEnum,
   pgTable,
@@ -77,6 +78,12 @@ export const studySessions = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     startedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp({ withTimezone: true }),
+    // Bu saatte "Hâlâ çalışıyor musun?" sorulur; onay gelmezse timer bu saatte durmuş sayılır (bkz. src/lib/timer-rules.ts)
+    confirmedUntil: timestamp({ withTimezone: true })
+      .notNull()
+      .default(sql`now() + interval '3 hours'`),
+    // Onay gelmediği için otomatik durduysa true
+    autoStopped: boolean().notNull().default(false),
   },
   (t) => [
     // Bir kişinin aynı anda en fazla bir açık timer'ı olabilir

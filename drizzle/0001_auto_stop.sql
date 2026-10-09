@@ -1,0 +1,2 @@
+ALTER TABLE "study_sessions" ADD COLUMN "confirmed_until" timestamp with time zone DEFAULT now() + interval '3 hours' NOT NULL;--> statement-breakpoint
+ALTER TABLE "study_sessions" ADD COLUMN "auto_stopped" boolean DEFAULT false NOT NULL;

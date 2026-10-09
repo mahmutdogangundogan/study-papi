@@ -1,14 +1,17 @@
 "use client";
 
 import { createContext, use, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
-import { startTimer, stopTimer } from "@/actions/timer";
+import { confirmTimer, startTimer, stopTimer } from "@/actions/timer";
 import type { TimerState } from "@/lib/data";
+import { GRACE_MINUTES } from "@/lib/timer-rules";
 import { syncClock } from "./clock";
 
 type TimerContextValue = {
   state: TimerState;
   pending: boolean;
   toggle: () => void;
+  /** "Hâlâ çalışıyor musun?" sorusuna evet */
+  confirm: () => void;
   /** Timer her değiştiğinde artar; canlı listeler bununla hemen yenilenir */
   version: number;
 };
@@ -24,6 +27,7 @@ export function TimerProvider({ initial, children }: { initial: TimerState; chil
   const activeRef = useRef(initial.activeSince);
   // Her tıklamada artar; tıklamadan önce başlamış bir tazeleme isteği yeni durumu ezmesin
   const mutationRef = useRef(0);
+  const refreshRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     activeRef.current = state.activeSince;
@@ -48,6 +52,7 @@ export function TimerProvider({ initial, children }: { initial: TimerState; chil
         // bir sonraki turda tekrar denenir
       }
     }
+    refreshRef.current = refresh;
     const interval = setInterval(refresh, REFRESH_MS);
     document.addEventListener("visibilitychange", refresh);
     return () => {
@@ -56,18 +61,29 @@ export function TimerProvider({ initial, children }: { initial: TimerState; chil
     };
   }, []);
 
-  function toggle() {
-    const wasActive = state.activeSince !== null;
+  // Onay süresi dolduğu an sunucudan yeni durumu al (timer otomatik durmuş olur)
+  useEffect(() => {
+    if (!state.confirmedUntil) return;
+    const deadline = new Date(state.confirmedUntil).getTime() + GRACE_MINUTES * 60_000;
+    const ms = deadline - new Date(state.serverNow).getTime() + 1000;
+    const timeout = setTimeout(() => refreshRef.current(), Math.max(ms, 1000));
+    return () => clearTimeout(timeout);
+  }, [state.confirmedUntil, state.serverNow]);
+
+  function run(action: () => Promise<TimerState>) {
     mutationRef.current++;
     startTransition(async () => {
-      const next = await (wasActive ? stopTimer() : startTimer());
+      const next = await action();
       syncClock(next.serverNow);
       setState(next);
       setVersion((v) => v + 1);
     });
   }
 
-  return <TimerContext value={{ state, pending, toggle, version }}>{children}</TimerContext>;
+  const toggle = () => run(state.activeSince !== null ? stopTimer : startTimer);
+  const confirm = () => run(confirmTimer);
+
+  return <TimerContext value={{ state, pending, toggle, confirm, version }}>{children}</TimerContext>;
 }
 
 export function useTimer() {

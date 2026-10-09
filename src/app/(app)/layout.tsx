@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { logout } from "@/actions/auth";
 import { DesktopNav, MobileNav } from "@/components/app-nav";
 import { TimerProvider } from "@/components/timer-provider";
+import { TimerNotice } from "@/components/timer-notice";
 import { TimerChip } from "@/components/timer-ui";
 import { Logo } from "@/components/ui/logo";
 import { getTimerState } from "@/lib/data";
@@ -45,6 +46,7 @@ async function AppFrame({ children }: { children: React.ReactNode }) {
             </form>
           </div>
         </div>
+        <TimerNotice />
       </header>
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-7 pb-28 md:pb-16">{children}</main>
       <MobileNav />
