@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useEffect, useState, useTransition, type ReactNode } from "react";
+import { createContext, use, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { startTimer, stopTimer } from "@/actions/timer";
 import type { TimerState } from "@/lib/data";
 import { syncClock } from "./clock";
@@ -13,17 +13,52 @@ type TimerContextValue = {
   version: number;
 };
 
+const REFRESH_MS = 30_000;
+
 const TimerContext = createContext<TimerContextValue | null>(null);
 
 export function TimerProvider({ initial, children }: { initial: TimerState; children: ReactNode }) {
   const [state, setState] = useState(initial);
   const [version, setVersion] = useState(0);
   const [pending, startTransition] = useTransition();
+  const activeRef = useRef(initial.activeSince);
+  // Her tıklamada artar; tıklamadan önce başlamış bir tazeleme isteği yeni durumu ezmesin
+  const mutationRef = useRef(0);
+
+  useEffect(() => {
+    activeRef.current = state.activeSince;
+  }, [state.activeSince]);
 
   useEffect(() => syncClock(initial.serverNow), [initial.serverNow]);
 
+  // Başka cihazdan başlatılan/durdurulan timer'ı ve gece yarısı sıfırlamasını yakala
+  useEffect(() => {
+    async function refresh() {
+      if (document.visibilityState === "hidden") return;
+      const mutation = mutationRef.current;
+      try {
+        const res = await fetch("/api/me/timer", { cache: "no-store" });
+        if (!res.ok || mutation !== mutationRef.current) return;
+        const next: TimerState = await res.json();
+        if (mutation !== mutationRef.current) return;
+        syncClock(next.serverNow);
+        if (next.activeSince !== activeRef.current) setVersion((v) => v + 1);
+        setState(next);
+      } catch {
+        // bir sonraki turda tekrar denenir
+      }
+    }
+    const interval = setInterval(refresh, REFRESH_MS);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, []);
+
   function toggle() {
     const wasActive = state.activeSince !== null;
+    mutationRef.current++;
     startTransition(async () => {
       const next = await (wasActive ? stopTimer() : startTimer());
       syncClock(next.serverNow);

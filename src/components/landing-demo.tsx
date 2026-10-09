@@ -5,9 +5,9 @@ import { Lamp } from "./lamp";
 import { Clock } from "./timer-ui";
 
 const rows = [
-  { name: "Ayşe", seconds: 6130, today: "3 sa 12 dk" },
-  { name: "Mert", seconds: 2275, today: "1 sa 05 dk" },
-  { name: "Zeynep", seconds: null, today: "2 sa 40 dk", note: "molada, son 14:20" },
+  { name: "Ayşe", total: 11530, session: "1 sa 42 dk", on: true },
+  { name: "Mert", total: 3910, session: "37 dk", on: true },
+  { name: "Zeynep", total: 9600, note: "molada, son 14:20", on: false },
 ];
 
 // Landing'deki örnek defter: timer'lar sayfa açıkken gerçekten işler
@@ -24,7 +24,7 @@ export function LandingDemo() {
       </figcaption>
       <ul className="ledger">
         {rows.map((r) => {
-          const on = r.seconds !== null;
+          const on = r.on;
           return (
             <li key={r.name} className="flex min-h-16 items-center">
               <span className="flex w-[52px] shrink-0 justify-center self-stretch pt-3">
@@ -41,9 +41,19 @@ export function LandingDemo() {
                 </p>
               </div>
               <div className="shrink-0 py-3 pr-4 text-right">
-                {on && <Clock seconds={r.seconds! + tick} running className="block text-[20px] leading-tight font-medium" />}
+                <Clock
+                  seconds={r.total + (on ? tick : 0)}
+                  running={on}
+                  className="block text-[20px] leading-tight font-medium"
+                />
                 <span className="block text-[13px] text-ink-muted">
-                  bugün <span className="numerals">{r.today}</span>
+                  {on ? (
+                    <>
+                      bu oturum <span className="numerals">{r.session}</span>
+                    </>
+                  ) : (
+                    "bugün toplam"
+                  )}
                 </span>
               </div>
             </li>

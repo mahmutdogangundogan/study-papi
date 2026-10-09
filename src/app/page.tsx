@@ -15,7 +15,7 @@ const steps = [
   },
   {
     title: "Lambanı yak",
-    body: "“Çalışmaya başla”ya bastığında timer’ın sayar. Üç odadaysan üçünde de çalışırken görünürsün; timer tek, sana ait.",
+    body: "“Çalışmaya başla”ya bastığında timer’ın sayar. Ara verince durur, devam edince kaldığı yerden sürer. Timer tek ve sana ait; üç odadaysan üçünde de görünürsün.",
   },
 ];
 

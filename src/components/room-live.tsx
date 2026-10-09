@@ -116,11 +116,23 @@ export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: stri
                 </p>
               </div>
               <div className="shrink-0 py-3 pr-4 text-right sm:pr-2">
-                {active && (
-                  <Clock seconds={now ? elapsed : 0} running className="block text-[20px] leading-tight font-medium" />
-                )}
+                <Clock
+                  seconds={now ? todayTotal : 0}
+                  running={active}
+                  className="block text-[20px] leading-tight font-medium"
+                />
                 <span className="block text-[13px] text-ink-muted">
-                  bugün <span className="numerals">{now ? formatDuration(todayTotal) : "…"}</span>
+                  {active ? (
+                    now && elapsed < 60 ? (
+                      "yeni başladı"
+                    ) : (
+                      <>
+                        bu oturum <span className="numerals">{now ? formatDuration(elapsed) : "…"}</span>
+                      </>
+                    )
+                  ) : (
+                    "bugün toplam"
+                  )}
                 </span>
               </div>
             </li>
