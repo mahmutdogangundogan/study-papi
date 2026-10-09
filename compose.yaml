@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: studypapi
+      POSTGRES_PASSWORD: studypapi
+      POSTGRES_DB: studypapi
+    ports:
+      # 5432 makinede başka bir postgres tarafından kullanılıyor, o yüzden 5433
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      # Postgres 18 imajında veri dizini /var/lib/postgresql/18/docker altında
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studypapi -d studypapi"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

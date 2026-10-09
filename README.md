@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Study Papi
 
-## Getting Started
+Arkadaşlarınla aynı odada çalış: giriş yap, odaya gir, timer'ını başlat; odadakiler seni canlı olarak çalışırken görsün.
 
-First, run the development server:
+**Stack:** Next.js 16 (App Router, Cache Components) · React 19 · Tailwind v4 · Drizzle ORM · PostgreSQL 18 · pnpm
+
+## Kurulum
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env      # DATABASE_URL
+pnpm db:up                # docker compose ile postgres 18 (host portu 5433)
+pnpm db:migrate           # şemayı uygula
+pnpm db:seed              # isteğe bağlı demo veri: ali / ayse / mert, şifre: papi1234
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Postgres portunu değiştirmek için `POSTGRES_PORT=5432 pnpm db:up` yaz ve `.env` içindeki `DATABASE_URL`'i de buna göre güncelle.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Kurallar
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Timer kişiye aittir, odaya değil.** `study_sessions` tablosunda `ended_at` değeri boş olan kayıt, o kişinin çalışan timer'ıdır. Kısmi bir unique index (`study_sessions_one_active_per_user`) aynı anda birden fazla açık timer olmasını engeller. Kişi 3 odadaysa 3 odada da aynı timer görünür.
+- **Odalar public ya da private olabilir.** Public odalar Keşfet sayfasında aranabilir. Private odalara yalnızca davet linkiyle (`/join/KOD`) ya da kodla girilir; oda üyesi olmayan biri private odayı göremez.
+- **Oda kodu unique'tir** (8 karakter, karışabilecek 0/O ve 1/I harfleri hariç). Davet linki de aynı kodu kullanır. Oda sahibi kodu yenileyebilir; bu durumda eski link ve kod geçersiz olur.
+- Kod girerken küçük harf, tire ya da davet linkinin tamamı yazılabilir; hepsi kabul edilir.
 
-## Learn More
+## Mimari
 
-To learn more about Next.js, take a look at the following resources:
+| Yer | Ne yapar |
+| --- | --- |
+| `src/db/schema.ts` | Drizzle şeması: users, auth_sessions, rooms, room_members, study_sessions |
+| `src/lib/session.ts` | Kullanıcı adı ve şifre ile oturum. Token çerezde, SHA-256 özeti veritabanında, 30 gün geçerli |
+| `src/lib/password.ts` | scrypt ile şifre hash'leme (node:crypto, ek paket yok) |
+| `src/lib/data.ts` | Oda ve timer sorguları, "bugün toplam" hesabı (`APP_TIMEZONE`, varsayılan Europe/Istanbul) |
+| `src/actions/*` | Server Action'lar: giriş/kayıt, oda oluşturma/katılma/ayrılma, timer başlat/durdur |
+| `src/app/api/rooms/[id]/live` | Odadakilerin canlı durumu (istemci 5 sn'de bir sorar) |
+| `src/components/timer-provider.tsx` | Kişinin tek timer state'i; header ve oda sayfası bunu paylaşır |
+| `src/proxy.ts` | Çerez yoksa giriş sayfasına yönlendirir (`?next=` ile geri döner) |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Saniyelik sayma istemcide yapılır. Telefonun saati yanlış olsa bile süreler doğru görünsün diye istemci saati sunucu saatine göre düzeltilir (`syncClock`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scriptler
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`pnpm db:generate` (şemadan migration üretir) · `pnpm db:migrate` · `pnpm db:studio` · `pnpm db:seed` · `pnpm lint` · `pnpm build`
