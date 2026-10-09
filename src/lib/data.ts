@@ -4,10 +4,11 @@ import { connection } from "next/server";
 import { and, desc, eq, ilike, isNull, sql, type SQLWrapper } from "drizzle-orm";
 import { db } from "@/db";
 import { roomMembers, rooms, studySessions, users } from "@/db/schema";
+import { DAY_RESET_HOUR, STUDY_TZ } from "@/lib/study-day";
 
-// "Bugün" hesabı bu saat dilimine göre yapılır
-const TZ = process.env.APP_TIMEZONE ?? "Europe/Istanbul";
-const todayStart = sql`(date_trunc('day', now() at time zone ${TZ}) at time zone ${TZ})`;
+// Çalışma gününün başlangıcı: TSİ ile en son geçilen 03.00
+const resetOffset = `${DAY_RESET_HOUR} hours`;
+const todayStart = sql`((date_trunc('day', (now() at time zone ${STUDY_TZ}) - ${resetOffset}::interval) + ${resetOffset}::interval) at time zone ${STUDY_TZ})`;
 
 // Karışmasın diye 0/O, 1/I gibi karakterler yok
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

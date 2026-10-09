@@ -2,15 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { RoomLiveData } from "@/lib/data";
+import { STUDY_TZ, studyDayKey } from "@/lib/study-day";
 import { elapsedSeconds, formatDuration, syncClock, useNow } from "./clock";
 import { Lamp } from "./lamp";
 import { Clock } from "./timer-ui";
 import { useTimer } from "./timer-provider";
 
 const POLL_MS = 5000;
-const TZ = "Europe/Istanbul";
-const dayFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: TZ, dateStyle: "short" });
-const timeFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
+const timeFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: STUDY_TZ, hour: "2-digit", minute: "2-digit" });
 
 export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: string; initial: RoomLiveData }) {
   const [data, setData] = useState(initial);
@@ -67,7 +66,7 @@ export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: stri
     return b.todaySeconds - a.todaySeconds;
   });
   const studying = members.filter((m) => m.activeSince).length;
-  const today = now ? dayFmt.format(now) : null;
+  const today = now ? studyDayKey(now) : null;
 
   return (
     <section>
@@ -89,7 +88,7 @@ export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: stri
           const active = m.activeSince !== null;
           const elapsed = active && now ? elapsedSeconds(m.activeSince!, now) : 0;
           const todayTotal = m.todaySeconds + (active && now ? elapsedSeconds(m.asOf, now) : 0);
-          const lastToday = m.lastEndedAt && today && dayFmt.format(new Date(m.lastEndedAt)) === today;
+          const lastToday = m.lastEndedAt && today && studyDayKey(new Date(m.lastEndedAt).getTime()) === today;
           return (
             <li key={m.userId} className="ink-in flex min-h-16 items-center">
               <span className="flex w-[52px] shrink-0 justify-center self-stretch pt-3">

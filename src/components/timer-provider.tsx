@@ -31,7 +31,7 @@ export function TimerProvider({ initial, children }: { initial: TimerState; chil
 
   useEffect(() => syncClock(initial.serverNow), [initial.serverNow]);
 
-  // Başka cihazdan başlatılan/durdurulan timer'ı ve gece yarısı sıfırlamasını yakala
+  // Başka cihazdan başlatılan/durdurulan timer'ı ve gece 03.00 sıfırlamasını yakala
   useEffect(() => {
     async function refresh() {
       if (document.visibilityState === "hidden") return;

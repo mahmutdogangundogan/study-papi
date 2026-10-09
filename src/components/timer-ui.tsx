@@ -5,7 +5,7 @@ import { Lamp } from "./lamp";
 import { useTimer } from "./timer-provider";
 
 // Timer bugünkü toplamı gösterir: ara verince durur, devam edince kaldığı yerden sayar,
-// gece yarısı sıfırlanır.
+// her gece 03.00'te (TSİ) sıfırlanır.
 function useMyTimer() {
   const { state, pending, toggle } = useTimer();
   const now = useNow();
@@ -92,7 +92,7 @@ export function TimerDesk() {
       <p className="mt-1 text-[clamp(72px,24vw,128px)] leading-none font-light tracking-[-0.02em] [font-variation-settings:'opsz'_72]">
         <Clock seconds={ready ? total : 0} running={active} />
       </p>
-      <p className="mt-2 text-[13px] text-ink-muted">Bugün toplam, gece yarısı sıfırlanır</p>
+      <p className="mt-2 text-[13px] text-ink-muted">Bugün toplam, her gece 03.00’te sıfırlanır</p>
       <button
         type="button"
         onClick={toggle}
