@@ -15,9 +15,14 @@ const app = next({ dev, port, httpServer: server });
 // prepare() .env dosyalarını da yükler
 await app.prepare();
 const handle = app.getRequestHandler();
-await attachRealtime(server, process.env.DATABASE_URL!);
+// Veritabanına bağlanılamazsa (ör. reboot sonrası Docker geç açılırsa) çık ki süreç yöneticisi yeniden
+// başlatsın. Next.js uncaughtException'ı yakalayıp süreci açık tuttuğu için kendiliğinden çıkmıyor.
+await attachRealtime(server, process.env.DATABASE_URL!).catch((error) => {
+  console.error("[realtime] başlatılamadı", error);
+  process.exit(1);
+});
 
-// Host verilmedi: LAN'daki diğer cihazlar da bağlanabilsin
-server.listen(port, () => {
+// LISTEN_HOST verilmezse LAN'daki diğer cihazlar da bağlanabilsin; üretimde 127.0.0.1 (tünel arkası)
+server.listen(port, process.env.LISTEN_HOST, () => {
   console.log(`> http://localhost:${port} (${dev ? "development" : "production"})`);
 });
