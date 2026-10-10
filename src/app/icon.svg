@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Yanan okuma lambası (src/components/lamp.tsx), mürekkep laciverti zemin üzerinde -->
+  <defs>
+    <clipPath id="tile"><rect width="32" height="32" rx="7"/></clipPath>
+    <linearGradient id="cone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd84d" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ffd84d" stop-opacity="0.5"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="#1b2340"/>
+  <path d="M9 15 L2 33 H30 L23 15 Z" fill="url(#cone)" clip-path="url(#tile)"/>
+  <path d="M16 3v4" stroke="#fafbf6" stroke-width="2" stroke-linecap="round"/>
+  <path d="M7 15.5a9 8.5 0 0 1 18 0z" fill="#fafbf6"/>
+  <circle cx="16" cy="16" r="2.6" fill="#ffd84d" stroke="#8a5f00" stroke-width="0.7"/>
+</svg>
