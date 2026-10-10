@@ -1,0 +1,25 @@
+# Mac mini üretim DB'si. Geliştirme için kökteki compose.yaml.
+# Şifre mini'deki ~/study-papi/.env.prod'dan gelir; port yalnızca 127.0.0.1'e bağlı.
+name: study-papi
+services:
+  postgres:
+    image: postgres:18
+    container_name: study-papi-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: studypapi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?.env.prod yok}
+      POSTGRES_DB: studypapi
+    ports:
+      # 5432 erasmus-db'nin
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studypapi -d studypapi"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
