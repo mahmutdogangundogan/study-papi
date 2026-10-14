@@ -7,7 +7,7 @@ import type { ChatMessage, ChatPage } from "@/lib/data";
 import { STUDY_TZ } from "@/lib/study-day";
 import { useNow } from "./clock";
 import { subscribeLive, watchRoom } from "./live-socket";
-import { useChatPanel } from "./room-chat-panel";
+import { useChatPanel } from "./room-panels";
 import { FormError } from "./ui/form";
 
 const MAX_LENGTH = 500; // MESSAGE_MAX_LENGTH (src/lib/data.ts) ile aynı; sunucu da kontrol eder

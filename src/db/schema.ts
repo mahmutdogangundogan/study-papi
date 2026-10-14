@@ -3,6 +3,7 @@ import {
   bigint,
   boolean,
   index,
+  integer,
   pgEnum,
   pgTable,
   primaryKey,
@@ -111,6 +112,17 @@ export const roomMessages = pgTable(
   },
   (t) => [index().on(t.roomId, t.id)],
 );
+
+// Kişiye özel not defteri (kişi başına tek kayıt). version her kayıtta artar: iki sekme/cihaz açıksa
+// eski sürümün üstüne yazılmaz, çakışma olarak döner (bkz. saveNotes, src/lib/data.ts)
+export const userNotes = pgTable("user_notes", {
+  userId: uuid()
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  body: text().notNull().default(""),
+  version: integer().notNull().default(1),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
 
 export type User = typeof users.$inferSelect;
 export type Room = typeof rooms.$inferSelect;

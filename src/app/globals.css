@@ -29,6 +29,9 @@
 body {
   background: var(--color-paper);
   color: var(--color-ink);
+  /* Not paneli açılınca oda içeriği sağa itilir; ekranın dışına taşan kısım yatay kaydırma çubuğu açmasın.
+     clip, hidden'ın aksine kaydırma alanı oluşturmaz (yapışkan başlık bozulmaz) */
+  overflow-x: clip;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -216,35 +219,40 @@ body::before {
   }
 }
 
-/* Sohbet paneli (src/components/room-chat-panel.tsx) */
+/* Oda sayfasının yan panelleri: solda notlar, sağda sohbet (src/components/room-panels.tsx) */
 :root {
-  --chat-w: min(380px, calc(100vw - 56px));
+  --panel-w: min(380px, calc(100vw - 56px));
+  /* Panel açılınca oda içeriği öbür yana kayar: geniş ekranda panelin altında kalmayacak kadar (en az
+     panelin yarısı), dar ekranda panelle birlikte itilir. 42rem = içerik genişliği (max-w-2xl) */
+  --panel-shift: min(var(--panel-w), max(var(--panel-w) / 2, var(--panel-w) - (100vw - 42rem) / 2 + 1.5rem));
 }
-.chat-panel {
-  width: var(--chat-w);
+.side-panel {
+  width: var(--panel-w);
   top: calc(4rem + env(safe-area-inset-top));
   /* Mobilde alttaki menünün üstünde biter */
   bottom: calc(4rem + env(safe-area-inset-bottom));
 }
 @media (width >= 48rem) {
-  .chat-panel {
+  .side-panel {
     bottom: 0;
   }
 }
-/* Panel açılınca oda içeriği sola kayar: geniş ekranda panelin altında kalmayacak kadar (en az panelin
-   yarısı), dar ekranda panelle birlikte itilir. 42rem = içerik genişliği (max-w-2xl) */
-.chat-shift {
-  transform: translateX(
-    calc(-1 * min(var(--chat-w), max(var(--chat-w) / 2, var(--chat-w) - (100vw - 42rem) / 2 + 1.5rem)))
-  );
+.panel-shift-left {
+  transform: translateX(calc(-1 * var(--panel-shift)));
 }
-.chat-handle-open {
-  transform: translateX(calc(-1 * var(--chat-w)));
+.panel-shift-right {
+  transform: translateX(var(--panel-shift));
+}
+.panel-handle-open-right {
+  transform: translateX(calc(-1 * var(--panel-w)));
+}
+.panel-handle-open-left {
+  transform: translateX(var(--panel-w));
 }
 
 @media (prefers-reduced-motion: no-preference) {
   /* Panel ve oda içeriği birlikte, yavaşça kayar */
-  .chat-slide {
+  .panel-slide {
     transition:
       transform 700ms cubic-bezier(0.4, 0, 0.2, 1),
       translate 700ms cubic-bezier(0.4, 0, 0.2, 1);

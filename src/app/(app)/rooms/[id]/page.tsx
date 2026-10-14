@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { deleteRoom, joinPublicRoom, leaveRoom, regenerateRoomCode } from "@/actions/rooms";
 import { InvitePanel } from "@/components/invite-panel";
+import { PersonalNotes } from "@/components/personal-notes";
 import { RoomChat } from "@/components/room-chat";
-import { RoomChatPanel } from "@/components/room-chat-panel";
 import { RoomLive } from "@/components/room-live";
+import { RoomPanels } from "@/components/room-panels";
 import { TimerDesk } from "@/components/timer-ui";
-import { canViewRoom, getRoomForUser, getRoomMembersLive, getRoomMessages } from "@/lib/data";
+import { canViewRoom, getNotes, getRoomForUser, getRoomMembersLive, getRoomMessages } from "@/lib/data";
 import { requireUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Oda" };
@@ -18,10 +19,17 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
 
   if (!canViewRoom(room)) notFound();
 
-  const [live, chat] = await Promise.all([getRoomMembersLive(room.id), getRoomMessages(room.id)]);
+  const [live, chat, notes] = await Promise.all([
+    getRoomMembersLive(room.id),
+    getRoomMessages(room.id),
+    getNotes(user.id),
+  ]);
 
   return (
-    <RoomChatPanel chat={<RoomChat roomId={room.id} meId={user.id} canWrite={!!room.role} initial={chat} />}>
+    <RoomPanels
+      notes={<PersonalNotes initial={notes} />}
+      chat={<RoomChat roomId={room.id} meId={user.id} canWrite={!!room.role} initial={chat} />}
+    >
       <div className="space-y-12">
         <header>
           <div className="flex items-start justify-between gap-3">
@@ -88,6 +96,6 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
           </form>
         )}
       </div>
-    </RoomChatPanel>
+    </RoomPanels>
   );
 }

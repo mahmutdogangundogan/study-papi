@@ -26,6 +26,8 @@ Postgres portunu değiştirmek için `POSTGRES_PORT=5432 pnpm db:up` yaz ve `.en
 - **Oda kodu unique'tir** (8 karakter, karışabilecek 0/O ve 1/I harfleri hariç). Davet linki de aynı kodu kullanır. Oda sahibi kodu yenileyebilir; bu durumda eski link ve kod geçersiz olur.
 - Kod girerken küçük harf, tire ya da davet linkinin tamamı yazılabilir; hepsi kabul edilir.
 - **Her odanın bir sohbeti var.** Yalnızca üyeler yazabilir; odayı görebilen herkes (public odada herkes, private odada üyeler) okuyabilir. Mesajlar saklanır, sayfa yenilenince son 50 mesaj gelir, öncesi "Önceki mesajlar" ile yüklenir. Mesaj en fazla 500 karakter; 10 saniyede en fazla 5 mesaj.
+- **Oda sayfasında iki yan panel var:** sağda sohbet, solda kişisel notlar. Aynı anda biri açık olur; açılınca oda içeriği öbür yana kayar. Sohbet kapalıyken gelen mesajların sayısı sohbet sekmesinde görünür.
+- **Kişisel notlar kişiye aittir** (timer gibi): tek defter, her odada aynı, sadece sahibi görür. Yazmayı bırakınca kendiliğinden kaydedilir. Her kayıt sürüm numarası taşır; başka sekmede/cihazda arada kaydedilmiş notun üstüne yazılmaz, o hal yüklenir ve haber verilir.
 - **Profil istatistikleri ayrı bir tabloda tutulmaz**, `study_sessions`'tan hesaplanır; böylece timer'la hiç ayrışmaz. Günler timer'daki gibi 03.00'te (TSİ) başlar. Haftalık ortalama son 4 haftaya bakar (yeni katılanda katıldığından beri geçen haftalara), seri en az 1 dakika çalışılan art arda günlerdir.
 
 ## Mimari
@@ -44,7 +46,9 @@ Postgres portunu değiştirmek için `POSTGRES_PORT=5432 pnpm db:up` yaz ve `.en
 | `src/app/api/rooms/[id]/live` | Odadakilerin canlı durumu (istemci bildirim gelince çeker) |
 | `src/components/timer-provider.tsx` | Kişinin tek timer state'i; header ve oda sayfası bunu paylaşır |
 | `src/proxy.ts` | Çerez yoksa giriş sayfasına yönlendirir (`?next=` ile geri döner) |
+| `src/components/room-panels.tsx` | Oda sayfasının yan panelleri (solda notlar, sağda sohbet), sekmeler ve okunmamış sayacı |
 | `src/actions/chat.ts`, `src/components/room-chat.tsx` | Oda sohbeti: gönderme (Server Action) ve canlı mesaj listesi |
+| `src/app/api/me/notes`, `src/components/personal-notes.tsx` | Kişisel notlar: okuma/kaydetme (sayfa kapanırken de gönderilebilsin diye route handler) ve otomatik kaydeden defter |
 | `drizzle/0003_room_chat.sql` | `room_messages` tablosu ve yeni mesajda `pg_notify` gönderen tetikleyici |
 | `src/app/api/rooms/[id]/messages` | Son mesajlar; `?before=ID` ile öncekiler |
 | `src/lib/stats.ts` | Profil istatistikleri (bugün, bu hafta, ortalamalar, seri); günlük toplamlardan hesaplayan saf fonksiyonlar |

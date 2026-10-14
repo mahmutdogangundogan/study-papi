@@ -29,6 +29,13 @@
       "when": 1792002229037,
       "tag": "0003_room_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792003794358,
+      "tag": "0004_user_notes",
+      "breakpoints": true
     }
   ]
 }

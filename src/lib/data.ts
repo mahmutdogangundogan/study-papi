@@ -3,7 +3,7 @@ import { randomInt } from "node:crypto";
 import { connection } from "next/server";
 import { and, desc, eq, ilike, isNull, lt, sql, type SQLWrapper } from "drizzle-orm";
 import { db } from "@/db";
-import { roomMembers, roomMessages, rooms, studySessions, users } from "@/db/schema";
+import { roomMembers, roomMessages, rooms, studySessions, userNotes, users } from "@/db/schema";
 import { DAY_RESET_HOUR, STUDY_TZ } from "@/lib/study-day";
 import { CONFIRM_HOURS, GRACE_MINUTES } from "@/lib/timer-rules";
 
@@ -318,3 +318,36 @@ export async function getStudyHistory(userId: string) {
 }
 
 export type StudyHistory = Awaited<ReturnType<typeof getStudyHistory>>;
+
+// ── Kişisel notlar ──────────────────────────────────────────────────────────
+
+export const NOTES_MAX_LENGTH = 20_000;
+
+/** version 0: henüz hiç not yazılmamış */
+export async function getNotes(userId: string) {
+  const [row] = await db
+    .select({ body: userNotes.body, version: userNotes.version, updatedAt: userNotes.updatedAt })
+    .from(userNotes)
+    .where(eq(userNotes.userId, userId));
+  return { body: row?.body ?? "", version: row?.version ?? 0, updatedAt: row?.updatedAt.toISOString() ?? null };
+}
+
+export type Notes = Awaited<ReturnType<typeof getNotes>>;
+
+/**
+ * Notu yalnızca istemcinin bildiği sürüm hâlâ güncelse yazar. Başka bir sekme/cihaz arada kaydettiyse
+ * üstüne yazmaz; güncel hali conflict olarak döner.
+ */
+export async function saveNotes(userId: string, body: string, baseVersion: number) {
+  const returning = { version: userNotes.version, updatedAt: userNotes.updatedAt };
+  const [row] =
+    baseVersion === 0
+      ? await db.insert(userNotes).values({ userId, body }).onConflictDoNothing().returning(returning)
+      : await db
+          .update(userNotes)
+          .set({ body, version: sql`${userNotes.version} + 1`, updatedAt: sql`now()` })
+          .where(and(eq(userNotes.userId, userId), eq(userNotes.version, baseVersion)))
+          .returning(returning);
+  if (!row) return { conflict: true as const, ...(await getNotes(userId)) };
+  return { conflict: false as const, body, version: row.version, updatedAt: row.updatedAt.toISOString() };
+}
