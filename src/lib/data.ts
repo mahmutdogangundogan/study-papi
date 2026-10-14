@@ -1,15 +1,17 @@
 import "server-only";
 import { randomInt } from "node:crypto";
 import { connection } from "next/server";
-import { and, desc, eq, ilike, isNull, sql, type SQLWrapper } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, lt, sql, type SQLWrapper } from "drizzle-orm";
 import { db } from "@/db";
-import { roomMembers, rooms, studySessions, users } from "@/db/schema";
+import { roomMembers, roomMessages, rooms, studySessions, users } from "@/db/schema";
 import { DAY_RESET_HOUR, STUDY_TZ } from "@/lib/study-day";
 import { CONFIRM_HOURS, GRACE_MINUTES } from "@/lib/timer-rules";
 
 // Çalışma gününün başlangıcı: TSİ ile en son geçilen 03.00
 const resetOffset = `${DAY_RESET_HOUR} hours`;
 const todayStart = sql`((date_trunc('day', (now() at time zone ${STUDY_TZ}) - ${resetOffset}::interval) + ${resetOffset}::interval) at time zone ${STUDY_TZ})`;
+// Bir anın ait olduğu çalışma günü (date)
+const studyDate = (ts: SQLWrapper) => sql`((${ts} at time zone ${STUDY_TZ}) - ${resetOffset}::interval)::date`;
 
 export const confirmWindow = sql`${`${CONFIRM_HOURS} hours`}::interval`;
 export const graceWindow = sql`${`${GRACE_MINUTES} minutes`}::interval`;
@@ -113,6 +115,11 @@ export async function getRoomForUser(roomId: string, userId: string) {
   return row ?? null;
 }
 
+// Private odayı (üye listesi, sohbet) sadece üyeleri görebilir; varlığı bile belli edilmez
+export function canViewRoom<T extends { role: string | null; visibility: string }>(room: T | null): room is T {
+  return !!room && (!!room.role || room.visibility === "public");
+}
+
 export async function getRoomByCode(code: string) {
   const [row] = await db
     .select({ id: rooms.id, name: rooms.name, description: rooms.description, memberCount })
@@ -200,3 +207,114 @@ export async function getTimerState(userId: string) {
 }
 
 export type TimerState = Awaited<ReturnType<typeof getTimerState>>;
+
+// ── Sohbet ──────────────────────────────────────────────────────────────────
+
+export const MESSAGE_MAX_LENGTH = 500;
+const MESSAGE_PAGE = 50;
+
+const messageColumns = {
+  id: roomMessages.id,
+  userId: roomMessages.userId,
+  username: users.username,
+  displayName: users.displayName,
+  body: roomMessages.body,
+  createdAt: roomMessages.createdAt,
+};
+
+type MessageRow = { id: number; userId: string; username: string; displayName: string; body: string; createdAt: Date };
+const toChatMessage = (m: MessageRow) => ({ ...m, createdAt: m.createdAt.toISOString() });
+
+/** Odanın son mesajları (eskiden yeniye). before verilirse o mesajdan öncekiler. */
+export async function getRoomMessages(roomId: string, before?: number) {
+  await connection();
+  const rows = await db
+    .select(messageColumns)
+    .from(roomMessages)
+    .innerJoin(users, eq(users.id, roomMessages.userId))
+    .where(and(eq(roomMessages.roomId, roomId), before ? lt(roomMessages.id, before) : undefined))
+    .orderBy(desc(roomMessages.id))
+    .limit(MESSAGE_PAGE + 1);
+  return {
+    messages: rows.slice(0, MESSAGE_PAGE).reverse().map(toChatMessage),
+    hasMore: rows.length > MESSAGE_PAGE,
+  };
+}
+
+export type ChatPage = Awaited<ReturnType<typeof getRoomMessages>>;
+export type ChatMessage = ChatPage["messages"][number];
+
+/** Son 10 saniyede kaç mesaj yazdı (basit flood koruması) */
+export async function recentMessageCount(roomId: string, userId: string) {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(roomMessages)
+    .where(
+      and(
+        eq(roomMessages.roomId, roomId),
+        eq(roomMessages.userId, userId),
+        sql`${roomMessages.createdAt} > now() - interval '10 seconds'`,
+      ),
+    );
+  return row.count;
+}
+
+export async function insertRoomMessage(roomId: string, userId: string, body: string) {
+  const [row] = await db.insert(roomMessages).values({ roomId, userId, body }).returning({ id: roomMessages.id });
+  const [message] = await db
+    .select(messageColumns)
+    .from(roomMessages)
+    .innerJoin(users, eq(users.id, roomMessages.userId))
+    .where(eq(roomMessages.id, row.id));
+  return toChatMessage(message);
+}
+
+// ── Profil ve istatistikler ─────────────────────────────────────────────────
+
+export async function getProfileUser(username: string) {
+  const [row] = await db
+    .select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      createdAt: users.createdAt,
+      joinedDay: sql<string>`to_char(${studyDate(users.createdAt)}, 'YYYY-MM-DD')`,
+    })
+    .from(users)
+    .where(eq(users.username, username.toLowerCase()))
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * Kişinin çalıştığı her günün toplamı. Oturumlar 03.00 (TSİ) gün sınırlarından bölünür; gece yarısını
+ * geçen çalışma önceki güne sayılır (timer'daki "bugün toplam" ile aynı kural). Açık timer şu ana kadar sayılır.
+ */
+export async function getStudyHistory(userId: string) {
+  await connection();
+  await closeExpiredSessions();
+  const days = await db.execute<{ day: string; seconds: number }>(sql`
+    select to_char(g.day, 'YYYY-MM-DD') as day,
+      sum(extract(epoch from least(s.ended, g.day_end) - greatest(s.started_at, g.day_start)))::int as seconds
+    from (
+      select started_at, coalesce(ended_at, now()) as ended
+      from ${studySessions} where user_id = ${userId}
+    ) s
+    cross join lateral (
+      select d::date as day,
+        (d + ${resetOffset}::interval) at time zone ${STUDY_TZ} as day_start,
+        (d + interval '1 day' + ${resetOffset}::interval) at time zone ${STUDY_TZ} as day_end
+      from generate_series(${studyDate(sql`s.started_at`)}::timestamp, ${studyDate(sql`s.ended`)}::timestamp, interval '1 day') d
+    ) g
+    where least(s.ended, g.day_end) > greatest(s.started_at, g.day_start)
+    group by g.day
+    order by g.day`);
+  const [meta] = await db.execute<{ today: string; longestSession: number; studying: boolean }>(sql`
+    select to_char(${studyDate(sql`now()`)}, 'YYYY-MM-DD') as today,
+      coalesce(max(extract(epoch from coalesce(ended_at, now()) - started_at)), 0)::int as "longestSession",
+      bool_or(ended_at is null) is true as studying
+    from ${studySessions} where user_id = ${userId}`);
+  return { days: [...days], ...meta };
+}
+
+export type StudyHistory = Awaited<ReturnType<typeof getStudyHistory>>;

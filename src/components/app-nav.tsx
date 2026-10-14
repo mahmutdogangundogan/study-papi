@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const items = [
+const baseItems = [
   {
     href: "/rooms",
     label: "Odalarım",
@@ -26,6 +26,20 @@ const items = [
   },
 ];
 
+// Profil kişiye özel: href kullanıcı adını içerir
+function navItems(username: string) {
+  return [
+    ...baseItems,
+    {
+      href: `/profile/${username}`,
+      label: "Profil",
+      match: (p: string) => p === "/profile" || p === `/profile/${username}`,
+      // baş ve omuzlar
+      icon: "M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM4.5 20c.8-3.5 3.8-6 7.5-6s6.7 2.5 7.5 6",
+    },
+  ];
+}
+
 function Icon({ d }: { d: string }) {
   return (
     <svg viewBox="0 0 24 24" className="size-[22px]" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -34,11 +48,11 @@ function Icon({ d }: { d: string }) {
   );
 }
 
-export function DesktopNav() {
+export function DesktopNav({ username }: { username: string }) {
   const pathname = usePathname();
   return (
     <nav className="hidden items-center gap-6 md:flex">
-      {items.map((item) => {
+      {navItems(username).map((item) => {
         const active = item.match(pathname);
         return (
           <Link
@@ -56,12 +70,12 @@ export function DesktopNav() {
   );
 }
 
-export function MobileNav() {
+export function MobileNav({ username }: { username: string }) {
   const pathname = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-sheet pb-[env(safe-area-inset-bottom)] md:hidden">
-      <ul className="grid grid-cols-3">
-        {items.map((item) => {
+      <ul className="grid grid-cols-4">
+        {navItems(username).map((item) => {
           const active = item.match(pathname);
           return (
             <li key={item.href}>

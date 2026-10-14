@@ -15,7 +15,7 @@ const PING_MS = 30_000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type ClientMessage = { type: "watch" | "unwatch"; roomId: string };
-type ServerMessage = { type: "timer" } | { type: "room"; roomId: string };
+type ServerMessage = { type: "timer" } | { type: "room" | "chat"; roomId: string };
 type Client = { userId: string; rooms: Set<string>; alive: boolean };
 
 export async function attachRealtime(server: Server, databaseUrl: string) {
@@ -27,8 +27,8 @@ export async function attachRealtime(server: Server, databaseUrl: string) {
     if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(message));
   }
 
-  function notifyRoom(roomId: string) {
-    for (const [ws, client] of clients) if (client.rooms.has(roomId)) send(ws, { type: "room", roomId });
+  function notifyRoom(roomId: string, type: "room" | "chat" = "room") {
+    for (const [ws, client] of clients) if (client.rooms.has(roomId)) send(ws, { type, roomId });
   }
 
   // Çerezdeki oturumu src/lib/session.ts ile aynı şekilde doğrula
@@ -136,5 +136,7 @@ export async function attachRealtime(server: Server, databaseUrl: string) {
     },
     sweep,
   );
-  await sql.listen("room_members_changed", notifyRoom);
+  await sql.listen("room_members_changed", (roomId) => notifyRoom(roomId));
+  // Yeni sohbet mesajı (drizzle/0003_room_chat.sql); izin canWatch ile aynı: private odayı sadece üyeleri izler
+  await sql.listen("room_message", (roomId) => notifyRoom(roomId, "chat"));
 }

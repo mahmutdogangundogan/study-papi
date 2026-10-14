@@ -3,7 +3,7 @@
 // Sekme başına tek WebSocket (/ws, bkz. src/realtime/server.mts). Sunucu sadece "şu değişti" der,
 // veriyi dinleyen bileşen kendisi çeker. Bağlantı koparsa artan aralıklarla yeniden bağlanır;
 // her bağlanışta "open" yayınlanır ki kopukken kaçırılan değişiklikler de çekilsin.
-export type LiveEvent = { type: "open" } | { type: "timer" } | { type: "room"; roomId: string };
+export type LiveEvent = { type: "open" } | { type: "timer" } | { type: "room" | "chat"; roomId: string };
 
 const listeners = new Set<(event: LiveEvent) => void>();
 // İzlenen oda → kaç bileşen izliyor

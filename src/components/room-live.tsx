@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { RoomLiveData } from "@/lib/data";
 import { STUDY_TZ, studyDayKey } from "@/lib/study-day";
@@ -102,9 +103,9 @@ export function RoomLive({ roomId, meId, initial }: { roomId: string; meId: stri
               <div className="min-w-0 flex-1 py-3 pl-3.5">
                 <p className="flex items-center gap-2 font-semibold">
                   <span className="truncate">
-                    <span className="highlight" data-on={active}>
+                    <Link href={`/profile/${m.username}`} className="highlight hover:underline" data-on={active}>
                       {m.displayName}
-                    </span>
+                    </Link>
                     {m.userId === meId && <span className="font-normal text-ink-muted"> (sen)</span>}
                   </span>
                   {m.role === "owner" && <span className="stamp text-ink-muted">Oda sahibi</span>}

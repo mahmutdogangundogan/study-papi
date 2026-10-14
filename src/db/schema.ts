@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   index,
   pgEnum,
@@ -92,6 +93,23 @@ export const studySessions = pgTable(
       .where(sql`${t.endedAt} is null`),
     index().on(t.userId, t.startedAt),
   ],
+);
+
+// Oda sohbeti. id artan sayı: hem sıralama hem "daha eski mesajlar" için imleç
+export const roomMessages = pgTable(
+  "room_messages",
+  {
+    id: bigint({ mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    roomId: uuid()
+      .notNull()
+      .references(() => rooms.id, { onDelete: "cascade" }),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index().on(t.roomId, t.id)],
 );
 
 export type User = typeof users.$inferSelect;

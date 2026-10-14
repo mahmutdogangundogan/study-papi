@@ -25,6 +25,8 @@ Postgres portunu değiştirmek için `POSTGRES_PORT=5432 pnpm db:up` yaz ve `.en
 - **Odalar public ya da private olabilir.** Public odalar Keşfet sayfasında aranabilir. Private odalara yalnızca davet linkiyle (`/join/KOD`) ya da kodla girilir; oda üyesi olmayan biri private odayı göremez.
 - **Oda kodu unique'tir** (8 karakter, karışabilecek 0/O ve 1/I harfleri hariç). Davet linki de aynı kodu kullanır. Oda sahibi kodu yenileyebilir; bu durumda eski link ve kod geçersiz olur.
 - Kod girerken küçük harf, tire ya da davet linkinin tamamı yazılabilir; hepsi kabul edilir.
+- **Her odanın bir sohbeti var.** Yalnızca üyeler yazabilir; odayı görebilen herkes (public odada herkes, private odada üyeler) okuyabilir. Mesajlar saklanır, sayfa yenilenince son 50 mesaj gelir, öncesi "Önceki mesajlar" ile yüklenir. Mesaj en fazla 500 karakter; 10 saniyede en fazla 5 mesaj.
+- **Profil istatistikleri ayrı bir tabloda tutulmaz**, `study_sessions`'tan hesaplanır; böylece timer'la hiç ayrışmaz. Günler timer'daki gibi 03.00'te (TSİ) başlar. Haftalık ortalama son 4 haftaya bakar (yeni katılanda katıldığından beri geçen haftalara), seri en az 1 dakika çalışılan art arda günlerdir.
 
 ## Mimari
 
@@ -42,8 +44,13 @@ Postgres portunu değiştirmek için `POSTGRES_PORT=5432 pnpm db:up` yaz ve `.en
 | `src/app/api/rooms/[id]/live` | Odadakilerin canlı durumu (istemci bildirim gelince çeker) |
 | `src/components/timer-provider.tsx` | Kişinin tek timer state'i; header ve oda sayfası bunu paylaşır |
 | `src/proxy.ts` | Çerez yoksa giriş sayfasına yönlendirir (`?next=` ile geri döner) |
+| `src/actions/chat.ts`, `src/components/room-chat.tsx` | Oda sohbeti: gönderme (Server Action) ve canlı mesaj listesi |
+| `drizzle/0003_room_chat.sql` | `room_messages` tablosu ve yeni mesajda `pg_notify` gönderen tetikleyici |
+| `src/app/api/rooms/[id]/messages` | Son mesajlar; `?before=ID` ile öncekiler |
+| `src/lib/stats.ts` | Profil istatistikleri (bugün, bu hafta, ortalamalar, seri); günlük toplamlardan hesaplayan saf fonksiyonlar |
+| `src/app/(app)/profile/[username]` | Profil sayfası; `/profile` kendi profiline yönlendirir |
 
-Anlık güncelleme: Postgres her timer ve üyelik değişikliğinde `NOTIFY` gönderir, realtime sunucusu bunu WebSocket ile tarayıcıya iletir, tarayıcı da veriyi yukarıdaki API'lerden çeker. Polling yok. Next.js route handler'ları WebSocket kabul etmediği için `next dev` yerine `pnpm dev` kullan; yoksa canlı güncelleme olmaz.
+Anlık güncelleme: Postgres her timer, üyelik değişikliğinde ve yeni sohbet mesajında `NOTIFY` gönderir, realtime sunucusu bunu WebSocket ile tarayıcıya iletir, tarayıcı da veriyi yukarıdaki API'lerden çeker. Polling yok. Next.js route handler'ları WebSocket kabul etmediği için `next dev` yerine `pnpm dev` kullan; yoksa canlı güncelleme olmaz.
 
 Saniyelik sayma istemcide yapılır. Telefonun saati yanlış olsa bile süreler doğru görünsün diye istemci saati sunucu saatine göre düzeltilir (`syncClock`).
 

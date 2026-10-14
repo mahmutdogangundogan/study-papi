@@ -67,10 +67,4 @@ export function formatClock(totalSeconds: number) {
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
-export function formatDuration(totalSeconds: number) {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  if (h === 0) return `${m} dk`;
-  if (m === 0) return `${h} sa`;
-  return `${h} sa ${m} dk`;
-}
+export { formatDuration } from "@/lib/duration";

@@ -29,7 +29,7 @@ async function AppFrame({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-20 border-b border-line bg-paper pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex h-16 max-w-2xl items-center gap-8 px-4">
           <Logo href="/rooms" />
-          <DesktopNav />
+          <DesktopNav username={user.username} />
           <div className="ml-auto flex items-center gap-2">
             <TimerChip />
             <form action={logout}>
@@ -49,7 +49,7 @@ async function AppFrame({ children }: { children: React.ReactNode }) {
         <TimerNotice />
       </header>
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-7 pb-28 md:pb-16">{children}</main>
-      <MobileNav />
+      <MobileNav username={user.username} />
     </TimerProvider>
   );
 }

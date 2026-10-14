@@ -1,4 +1,4 @@
-import { getRoomForUser, getRoomMembersLive } from "@/lib/data";
+import { canViewRoom, getRoomForUser, getRoomMembersLive } from "@/lib/data";
 import { getCurrentUser } from "@/lib/session";
 
 export async function GET(_req: Request, ctx: RouteContext<"/api/rooms/[id]/live">) {
@@ -7,8 +7,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/rooms/[id]/live
 
   const { id } = await ctx.params;
   const room = await getRoomForUser(id, user.id);
-  // Private odaların üye listesini sadece üyeler görebilir
-  if (!room || (!room.role && room.visibility !== "public")) {
+  if (!canViewRoom(room)) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
