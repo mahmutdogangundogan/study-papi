@@ -162,7 +162,7 @@ export function PersonalNotes({ initial }: { initial: Notes }) {
           onBlur={saver.save}
           maxLength={MAX_LENGTH}
           placeholder={"Bugün ne çalışacaksın?\n\n— Matematik: türev, 40 soru\n— Fizik: elektrik tekrarı"}
-          className="field min-h-0! flex-1 resize-none text-[16px]"
+          className="field min-h-0! flex-1 resize-none border-b-0! bg-none! pt-3 text-[16px] leading-relaxed"
         />
       </label>
 
