@@ -97,6 +97,9 @@ cd "\$STAGE"
 if ! cmp -s pnpm-lock.yaml "\$LIVE/pnpm-lock.yaml" || [ ! -d node_modules ]; then
   echo "pnpm-lock değişmiş -> pnpm install"; pnpm install --frozen-lockfile >/dev/null
 fi
+# Canlının klonundan gelen .next (Turbopack önbelleği dahil) atılır: 14 Eki 2026'da önbellek globals.css'in
+# eski derlemesini kullandı, yeni CSS kuralları canlıya hiç çıkmadı. Her yayın temiz build.
+rm -rf .next
 pnpm build > build.log 2>&1 || { tail -30 build.log; echo "BUILD BAŞARISIZ - canlıya dokunulmadı"; exit 1; }
 echo "build ok"
 pnpm db:migrate > migrate.log 2>&1 || { tail -20 migrate.log; echo "MIGRATION BAŞARISIZ - uygulama değişmedi"; exit 1; }
